@@ -1,0 +1,149 @@
+---
+import VinylArt from './VinylArt.astro';
+import { formatDuration } from '../lib/format';
+import type { Track } from '@music/types';
+
+interface Props {
+  track: Track | null;
+}
+const { track } = Astro.props;
+const artwork = track?.coverUrl ?? '';
+---
+
+{
+  track && (
+    <section class="hero">
+      <div class="hero__copy">
+        <span class="hero__eyebrow">No. 1 on today's chart</span>
+        <h1 class="hero__title">{track.title}</h1>
+        <p class="hero__artist">{track.artistName}{track.albumTitle ? ` — ${track.albumTitle}` : ''}</p>
+        <div class="hero__row">
+          {track.previewUrl && (
+            <button
+              class="hero__play"
+              type="button"
+              data-play-button
+              data-track-id={track.id}
+              data-title={track.title}
+              data-artist={track.artistName}
+              data-album={track.albumTitle ?? ''}
+              data-artwork={artwork}
+              data-preview={track.previewUrl}
+              data-duration={track.durationMs ?? ''}
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path d="M8 5.5v13l11-6.5-11-6.5z" fill="currentColor" />
+              </svg>
+              Play preview
+            </button>
+          )}
+          <span class="hero__meta">
+            {track.genre} · {formatDuration(track.durationMs)}
+          </span>
+        </div>
+      </div>
+      <div class="hero__art">
+        <VinylArt src={artwork} alt={`${track.title} artwork`} trackId={track.id} size={230} />
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    padding: 34px 40px;
+    border-radius: var(--radius-l);
+    background: linear-gradient(135deg, var(--ink-raised), var(--ink-soft) 70%);
+    border: 1px solid var(--line);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: -40% -10% auto auto;
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(circle, var(--amber) 0%, transparent 68%);
+    opacity: 0.14;
+    pointer-events: none;
+  }
+
+  .hero__copy {
+    max-width: 560px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero__eyebrow {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 14px;
+  }
+
+  .hero__title {
+    font-size: clamp(2rem, 4vw, 3.1rem);
+    line-height: 1.05;
+  }
+
+  .hero__artist {
+    margin-top: 12px;
+    color: var(--ash);
+    font-size: 1.05rem;
+  }
+
+  .hero__row {
+    margin-top: 26px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .hero__play {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    background: var(--amber);
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 12px 22px;
+    border-radius: 999px;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+
+  .hero__play:hover {
+    background: var(--violet);
+    transform: translateY(-1px);
+  }
+
+  .hero__meta {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ash-dim);
+  }
+
+  .hero__art {
+    flex: none;
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 760px) {
+    .hero {
+      flex-direction: column-reverse;
+      align-items: flex-start;
+      padding: 26px 22px;
+    }
+  }
+</style>

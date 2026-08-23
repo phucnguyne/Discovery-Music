@@ -1,0 +1,162 @@
+---
+import { GENRES } from '@music/types';
+
+const path = Astro.url.pathname;
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+---
+
+<aside class="sidebar">
+  <a class="brand" href="/">
+    <svg class="brand__mark" viewBox="0 0 40 40" aria-hidden="true">
+      <circle cx="20" cy="20" r="19" fill="none" stroke="var(--amber)" stroke-width="1.4" />
+      <circle cx="20" cy="20" r="13" fill="none" stroke="var(--line)" stroke-width="1" />
+      <circle cx="20" cy="20" r="3.4" fill="var(--amber)" />
+    </svg>
+    <span class="brand__word">Groove<em>Line</em></span>
+  </a>
+
+  <nav class="nav" aria-label="Primary">
+    <p class="nav__label">Discover</p>
+    <ul class="nav__list">
+      <li>
+        <a href="/" class:list={{ 'is-active': isActive('/') }}>
+          <span>Home</span>
+        </a>
+      </li>
+      <li>
+        <a href="/search" class:list={{ 'is-active': isActive('/search') }}>
+          <span>Search</span>
+        </a>
+      </li>
+    </ul>
+
+    <p class="nav__label">Genres</p>
+    <ul class="nav__list nav__list--genres">
+      {
+        GENRES.map((g) => (
+          <li>
+            <a href={`/genre/${g.slug}`} class:list={{ 'is-active': isActive(`/genre/${g.slug}`) }}>
+              <span>{g.label}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+
+  <div class="sidebar__foot">
+    <p>Catalog data via the iTunes Search API. 30-second previews only.</p>
+  </div>
+</aside>
+
+<style>
+  .sidebar {
+    background: var(--ink-soft);
+    border-right: 1px solid var(--line);
+    padding: 26px 20px 22px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 34px;
+  }
+
+  .brand__mark {
+    width: 30px;
+    height: 30px;
+    flex: none;
+  }
+
+  .brand__word {
+    font-family: var(--font-display);
+    font-size: 1.18rem;
+    font-weight: 600;
+    color: var(--paper);
+  }
+
+  .brand__word em {
+    font-style: normal;
+    color: var(--amber);
+  }
+
+  .nav {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .nav__label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ash-dim);
+    margin: 20px 8px 8px;
+  }
+
+  .nav__label:first-child {
+    margin-top: 0;
+  }
+
+  .nav__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nav__list a {
+    display: block;
+    padding: 9px 8px;
+    border-radius: var(--radius-s);
+    font-size: 0.92rem;
+    color: var(--ash);
+    border-left: 2px solid transparent;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .nav__list a:hover {
+    color: var(--paper);
+    background: var(--ink-raised);
+  }
+
+  .nav__list a.is-active {
+    color: var(--paper);
+    background: var(--ink-raised);
+    border-left-color: var(--amber);
+  }
+
+  .nav__list--genres a {
+    font-size: 0.86rem;
+  }
+
+  .sidebar__foot {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-size: 0.74rem;
+    line-height: 1.5;
+    color: var(--ash-dim);
+  }
+
+  @media (max-width: 900px) {
+    .sidebar {
+      position: static;
+      min-height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+    }
+    .nav {
+      overflow: visible;
+    }
+  }
+</style>

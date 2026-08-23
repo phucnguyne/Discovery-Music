@@ -1,0 +1,144 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TopBar from '../components/TopBar.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+import AlbumCard from '../components/AlbumCard.astro';
+import TrackRow from '../components/TrackRow.astro';
+import { api } from '../lib/api';
+
+export const prerender = false;
+
+const q = Astro.url.searchParams.get('q')?.trim() ?? '';
+let results: Awaited<ReturnType<typeof api.search>> = { tracks: [], albums: [], artists: [] };
+let apiUnreachable = false;
+
+if (q) {
+  try {
+    results = await api.search(q);
+  } catch {
+    apiUnreachable = true;
+  }
+}
+---
+
+<Layout title={q ? `“${q}”` : 'Search'}>
+  <TopBar eyebrow="Search" title={q ? `Results for “${q}”` : 'Search the catalog'} />
+
+  {!q && <p class="empty-state">Type a song, artist, or album into the search box above to get started.</p>}
+
+  {
+    apiUnreachable && (
+      <p class="empty-state">Couldn't reach @music/api — make sure it's running (<code>pnpm dev:api</code>).</p>
+    )
+  }
+
+  {
+    q && results.artists.length > 0 && (
+      <section class="section">
+        <SectionHeader title="Artists" />
+        <div class="grid-cards">
+          {results.artists.map((a) => (
+            <a class="artist-chip" href={`/artist/${a.id}`}>
+              <span class="artist-chip__avatar" aria-hidden="true">{a.name.slice(0, 1)}</span>
+              <span class="artist-chip__name">{a.name}</span>
+              <span class="artist-chip__genre">{a.genre}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    q && results.tracks.length > 0 && (
+      <section class="section">
+        <SectionHeader title="Songs" />
+        <div class="track-list">
+          {results.tracks.map((t, i) => (
+            <TrackRow
+              index={i + 1}
+              title={t.title}
+              artist={t.artistName}
+              album={t.albumTitle}
+              artwork={t.coverUrl}
+              trackId={t.id}
+              previewUrl={t.previewUrl}
+              durationMs={t.durationMs}
+            />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    q && results.albums.length > 0 && (
+      <section class="section">
+        <SectionHeader title="Albums" />
+        <div class="grid-cards">
+          {results.albums.map((a) => (
+            <AlbumCard title={a.title} subtitle={a.artistName} artwork={a.coverUrl} href={`/artist/${a.artistId}`} />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    q &&
+      !apiUnreachable &&
+      results.tracks.length === 0 &&
+      results.albums.length === 0 &&
+      results.artists.length === 0 && (
+        <p class="empty-state">No results for “{q}”. Try a different spelling or a broader term.</p>
+      )
+  }
+</Layout>
+
+<style>
+  .track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .artist-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--line);
+    background: var(--ink-soft);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .artist-chip:hover {
+    border-color: var(--amber-dim);
+    background: var(--ink-raised);
+  }
+
+  .artist-chip__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: var(--ink-raised);
+    color: var(--amber);
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+  }
+
+  .artist-chip__name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--paper);
+  }
+
+  .artist-chip__genre {
+    font-size: 0.76rem;
+    color: var(--ash-dim);
+  }
+</style>

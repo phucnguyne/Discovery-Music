@@ -1,0 +1,89 @@
+// apps/api/src/routes/catalog.ts
+import { Hono } from 'hono';
+import type { ApiResult, ArtistProfile, SearchResults } from '@music/types';
+import { searchQuerySchema, genreSlugSchema, artistIdSchema } from '@music/validation';
+import { CACHE_TTL_MS } from '@music/config';
+import { cached } from '../lib/cache.js';
+import { findGenre } from '../lib/genres.js';
+import * as itunes from '../lib/itunes-provider.js';
+
+export const catalog = new Hono();
+
+function ok<T>(data: T): ApiResult<T> {
+  return { ok: true, data };
+}
+
+function fail(error: string): ApiResult<never> {
+  return { ok: false, error };
+}
+
+// GET /catalog/search?q=...
+catalog.get('/search', async (c) => {
+  const parsed = searchQuerySchema.safeParse({ q: c.req.query('q') });
+  if (!parsed.success) {
+    return c.json(fail(parsed.error.issues[0]?.message ?? 'invalid query'), 400);
+  }
+  const { q } = parsed.data;
+
+  const results = await cached<SearchResults>(`search:${q}`, CACHE_TTL_MS.search, async () => {
+    const [tracks, albums, artists] = await Promise.all([
+      itunes.searchTracks(q, 16),
+      itunes.searchAlbums(q, 8),
+      itunes.searchArtists(q, 6),
+    ]);
+    return { tracks, albums, artists };
+  });
+
+  return c.json(ok(results));
+});
+
+// GET /catalog/charts/trending
+catalog.get('/charts/trending', async (c) => {
+  const tracks = await cached('charts:trending', CACHE_TTL_MS.charts, () => itunes.searchTracks('top hits', 10));
+  return c.json(ok(tracks));
+});
+
+// GET /catalog/charts/new-releases
+catalog.get('/charts/new-releases', async (c) => {
+  const albums = await cached('charts:new-releases', CACHE_TTL_MS.charts, () => itunes.searchAlbums('new album', 10));
+  return c.json(ok(albums));
+});
+
+// GET /catalog/genres/:slug
+catalog.get('/genres/:slug', async (c) => {
+  const parsed = genreSlugSchema.safeParse({ slug: c.req.param('slug') });
+  if (!parsed.success) return c.json(fail('invalid genre'), 400);
+
+  const genre = findGenre(parsed.data.slug);
+  if (!genre) return c.json(fail('unknown genre'), 404);
+
+  const result = await cached(`genre:${genre.slug}`, CACHE_TTL_MS.charts, async () => {
+    const [tracks, albums] = await Promise.all([
+      itunes.searchTracks(genre.term, 16),
+      itunes.searchAlbums(genre.term, 8),
+    ]);
+    return { genre: { slug: genre.slug, label: genre.label }, tracks, albums };
+  });
+
+  return c.json(ok(result));
+});
+
+// GET /catalog/artists/:id
+catalog.get('/artists/:id', async (c) => {
+  const parsed = artistIdSchema.safeParse({ id: c.req.param('id') });
+  if (!parsed.success) return c.json(fail('invalid artist id'), 400);
+  const { id } = parsed.data;
+
+  const profile = await cached<ArtistProfile | null>(`artist:${id}`, CACHE_TTL_MS.artist, async () => {
+    const [artist, albums, topTracks] = await Promise.all([
+      itunes.lookupArtist(id),
+      itunes.lookupArtistAlbums(id, 12),
+      itunes.lookupArtistTopTracks(id, 10),
+    ]);
+    if (!artist) return null;
+    return { artist, albums, topTracks };
+  });
+
+  if (!profile) return c.json(fail('artist not found'), 404);
+  return c.json(ok(profile));
+});

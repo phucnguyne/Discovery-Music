@@ -1,0 +1,135 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TopBar from '../components/TopBar.astro';
+import Hero from '../components/Hero.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+import AlbumCard from '../components/AlbumCard.astro';
+import TrackRow from '../components/TrackRow.astro';
+import { api } from '../lib/api';
+import { GENRES } from '@music/types';
+import { pickRecommendationSeed } from '@music/domain';
+
+let trending: Awaited<ReturnType<typeof api.trending>> = [];
+let newAlbums: Awaited<ReturnType<typeof api.newReleases>> = [];
+let apiUnreachable = false;
+
+try {
+  [trending, newAlbums] = await Promise.all([api.trending(), api.newReleases()]);
+} catch {
+  apiUnreachable = true;
+}
+
+// No listening history yet (that lands once accounts/auth exist), so this
+// is the cold-start path: pick a random genre to seed "Recommended for you".
+const recommendedSeed = pickRecommendationSeed([], GENRES);
+let recommended: Awaited<ReturnType<typeof api.genre>>['tracks'] = [];
+try {
+  const genreResult = await api.genre(recommendedSeed.slug);
+  recommended = genreResult.tracks.slice(0, 8);
+} catch {
+  apiUnreachable = true;
+}
+
+const heroTrack = trending[0] ?? null;
+const trendingRest = trending.slice(1, 9);
+---
+
+<Layout title="Home">
+  <TopBar eyebrow="GrooveLine" title="Find something to play" />
+
+  {
+    apiUnreachable && (
+      <p class="empty-state">
+        Couldn't reach @music/api — make sure it's running (<code>pnpm dev:api</code>) at the URL in
+        <code> PUBLIC_API_BASE_URL</code>.
+      </p>
+    )
+  }
+
+  <Hero track={heroTrack} />
+
+  <section class="section">
+    <SectionHeader eyebrow="Right now" title="Trending tracks" />
+    {
+      trendingRest.length > 0 ? (
+        <div class="track-list">
+          {trendingRest.map((t, i) => (
+            <TrackRow
+              index={i + 1}
+              title={t.title}
+              artist={t.artistName}
+              album={t.albumTitle}
+              artwork={t.coverUrl}
+              trackId={t.id}
+              previewUrl={t.previewUrl}
+              durationMs={t.durationMs}
+            />
+          ))}
+        </div>
+      ) : (
+        !apiUnreachable && <p class="empty-state">No trending tracks to show right now.</p>
+      )
+    }
+  </section>
+
+  <section class="section">
+    <SectionHeader eyebrow="Fresh" title="New releases" />
+    {
+      newAlbums.length > 0 ? (
+        <div class="grid-cards">
+          {newAlbums.map((a) => (
+            <AlbumCard title={a.title} subtitle={a.artistName} artwork={a.coverUrl} href={`/artist/${a.artistId}`} />
+          ))}
+        </div>
+      ) : (
+        !apiUnreachable && <p class="empty-state">No albums to show right now.</p>
+      )
+    }
+  </section>
+
+  <section class="section">
+    <SectionHeader title="Browse genres" />
+    <div class="chip-row">
+      {GENRES.map((g) => (
+        <a class="pill" href={`/genre/${g.slug}`}>{g.label}</a>
+      ))}
+    </div>
+  </section>
+
+  <section class="section">
+    <SectionHeader
+      eyebrow={`Because you might like ${recommendedSeed.label}`}
+      title="Recommended for you"
+      seeAllHref={`/genre/${recommendedSeed.slug}`}
+    />
+    {
+      recommended.length > 0 ? (
+        <div class="grid-cards">
+          {recommended.map((t) => (
+            <AlbumCard
+              title={t.title}
+              subtitle={t.artistName}
+              artwork={t.coverUrl}
+              href={`/artist/${t.artistId}`}
+              playable={
+                t.previewUrl
+                  ? { id: t.id, artist: t.artistName, album: t.albumTitle, previewUrl: t.previewUrl, durationMs: t.durationMs }
+                  : undefined
+              }
+            />
+          ))}
+        </div>
+      ) : (
+        !apiUnreachable && <p class="empty-state">No recommendations to show right now.</p>
+      )
+    }
+  </section>
+</Layout>
+
+<style>
+  .track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+</style>

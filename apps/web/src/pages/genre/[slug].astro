@@ -1,0 +1,91 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TopBar from '../../components/TopBar.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+import AlbumCard from '../../components/AlbumCard.astro';
+import { api } from '../../lib/api';
+import { GENRES } from '@music/types';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const knownGenre = GENRES.find((g) => g.slug === slug);
+
+if (!knownGenre || !slug) {
+  return Astro.redirect('/404');
+}
+
+let tracks: Awaited<ReturnType<typeof api.genre>>['tracks'] = [];
+let albums: Awaited<ReturnType<typeof api.genre>>['albums'] = [];
+let apiUnreachable = false;
+
+try {
+  const result = await api.genre(slug);
+  tracks = result.tracks;
+  albums = result.albums;
+} catch {
+  apiUnreachable = true;
+}
+---
+
+<Layout title={knownGenre.label}>
+  <TopBar eyebrow="Genre" title={knownGenre.label} />
+
+  {
+    apiUnreachable && (
+      <p class="empty-state">Couldn't reach @music/api — make sure it's running (<code>pnpm dev:api</code>).</p>
+    )
+  }
+
+  <div class="chip-row genre-switch">
+    {GENRES.map((g) => (
+      <a class:list={['pill', { 'is-active': g.slug === knownGenre.slug }]} href={`/genre/${g.slug}`}>{g.label}</a>
+    ))}
+  </div>
+
+  <section class="section">
+    <SectionHeader title="Songs" />
+    {
+      tracks.length > 0 ? (
+        <div class="grid-cards">
+          {tracks.map((t) => (
+            <AlbumCard
+              title={t.title}
+              subtitle={t.artistName}
+              artwork={t.coverUrl}
+              href={`/artist/${t.artistId}`}
+              playable={
+                t.previewUrl
+                  ? { id: t.id, artist: t.artistName, album: t.albumTitle, previewUrl: t.previewUrl, durationMs: t.durationMs }
+                  : undefined
+              }
+            />
+          ))}
+        </div>
+      ) : (
+        !apiUnreachable && <p class="empty-state">No {knownGenre.label} tracks found right now.</p>
+      )
+    }
+  </section>
+
+  <section class="section">
+    <SectionHeader title="Albums" />
+    {
+      albums.length > 0 ? (
+        <div class="grid-cards">
+          {albums.map((a) => (
+            <AlbumCard title={a.title} subtitle={a.artistName} artwork={a.coverUrl} href={`/artist/${a.artistId}`} />
+          ))}
+        </div>
+      ) : (
+        !apiUnreachable && <p class="empty-state">No {knownGenre.label} albums found right now.</p>
+      )
+    }
+  </section>
+</Layout>
+
+<style>
+  .genre-switch {
+    margin-top: 22px;
+  }
+</style>

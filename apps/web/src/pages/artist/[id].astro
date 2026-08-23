@@ -1,0 +1,110 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TopBar from '../../components/TopBar.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+import AlbumCard from '../../components/AlbumCard.astro';
+import TrackRow from '../../components/TrackRow.astro';
+import VinylArt from '../../components/VinylArt.astro';
+import { api } from '../../lib/api';
+import { MusicApiError } from '@music/api-client';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/404');
+
+let profile: Awaited<ReturnType<typeof api.artist>> | null = null;
+try {
+  profile = await api.artist(id);
+} catch (err) {
+  if (err instanceof MusicApiError) {
+    return Astro.redirect('/404');
+  }
+  throw err;
+}
+
+const { artist, albums, topTracks } = profile;
+const featureArt = albums[0]?.coverUrl || '/favicon.svg';
+---
+
+<Layout title={artist.name}>
+  <TopBar eyebrow="Artist" title={artist.name} />
+
+  <section class="artist-hero">
+    <VinylArt src={featureArt} alt={`${artist.name} artwork`} size={150} ring={false} />
+    <div>
+      <p class="artist-hero__genre">{artist.genre}</p>
+      <p class="artist-hero__count">
+        {albums.length} album{albums.length === 1 ? '' : 's'} · {topTracks.length} track{topTracks.length === 1 ? '' : 's'} in this catalog
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <SectionHeader title="Top tracks" />
+    {
+      topTracks.length > 0 ? (
+        <div class="track-list">
+          {topTracks.map((t, i) => (
+            <TrackRow
+              index={i + 1}
+              title={t.title}
+              artist={t.artistName}
+              album={t.albumTitle}
+              artwork={t.coverUrl}
+              trackId={t.id}
+              previewUrl={t.previewUrl}
+              durationMs={t.durationMs}
+            />
+          ))}
+        </div>
+      ) : (
+        <p class="empty-state">No previewable tracks found for this artist.</p>
+      )
+    }
+  </section>
+
+  <section class="section">
+    <SectionHeader title="Albums" />
+    {
+      albums.length > 0 ? (
+        <div class="grid-cards">
+          {albums.map((a) => (
+            <AlbumCard title={a.title} subtitle={a.artistName} artwork={a.coverUrl} href={a.viewUrl ?? '#'} />
+          ))}
+        </div>
+      ) : (
+        <p class="empty-state">No albums found for this artist.</p>
+      )
+    }
+  </section>
+</Layout>
+
+<style>
+  .artist-hero {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-top: 8px;
+  }
+
+  .artist-hero__genre {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+
+  .artist-hero__count {
+    margin-top: 8px;
+    color: var(--ash);
+    font-size: 0.92rem;
+  }
+
+  .track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+</style>

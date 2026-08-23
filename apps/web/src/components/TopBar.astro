@@ -1,0 +1,58 @@
+---
+import SearchBar from './react/SearchBar';
+
+interface Props {
+  eyebrow?: string;
+  title?: string;
+}
+const { eyebrow, title } = Astro.props;
+---
+
+<header class="topbar">
+  <div class="topbar__heading">
+    {eyebrow && <span class="topbar__eyebrow">{eyebrow}</span>}
+    {title && <h1 class="topbar__title">{title}</h1>}
+  </div>
+  <div class="topbar__search">
+    <SearchBar client:load transition:persist />
+  </div>
+</header>
+
+<style>
+  .topbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .topbar__eyebrow {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+
+  .topbar__title {
+    font-size: clamp(1.7rem, 3vw, 2.4rem);
+  }
+
+  .topbar__search {
+    flex: 1;
+    min-width: 240px;
+    max-width: 420px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 640px) {
+    .topbar__search {
+      justify-content: stretch;
+      max-width: none;
+    }
+  }
+</style>

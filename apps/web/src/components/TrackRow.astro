@@ -1,0 +1,138 @@
+---
+import { formatDuration } from '../lib/format';
+
+interface Props {
+  index?: number;
+  title: string;
+  artist: string;
+  album?: string;
+  artwork: string;
+  trackId: string;
+  previewUrl?: string;
+  durationMs?: number;
+}
+
+const { index, title, artist, album, artwork, trackId, previewUrl, durationMs } = Astro.props;
+const playable = Boolean(previewUrl);
+---
+
+<div class="track-row" data-vinyl data-track-id={trackId}>
+  {typeof index === 'number' && <span class="track-row__index">{String(index).padStart(2, '0')}</span>}
+  <img class="track-row__art" src={artwork} alt="" loading="lazy" width="44" height="44" />
+  <div class="track-row__meta">
+    <p class="track-row__title">{title}</p>
+    <p class="track-row__artist">{artist}</p>
+  </div>
+  <span class="track-row__duration">{formatDuration(durationMs)}</span>
+  {
+    playable ? (
+      <button
+        class="track-row__play"
+        type="button"
+        aria-label={`Play ${title} by ${artist}`}
+        data-play-button
+        data-track-id={trackId}
+        data-title={title}
+        data-artist={artist}
+        data-album={album ?? ''}
+        data-artwork={artwork}
+        data-preview={previewUrl}
+        data-duration={durationMs ?? ''}
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path d="M8 5.5v13l11-6.5-11-6.5z" fill="currentColor" />
+        </svg>
+      </button>
+    ) : (
+      <span class="track-row__play track-row__play--disabled" aria-hidden="true">
+        —
+      </span>
+    )
+  }
+</div>
+
+<style>
+  .track-row {
+    display: grid;
+    grid-template-columns: 26px 44px 1fr auto 36px;
+    align-items: center;
+    gap: 14px;
+    padding: 9px 10px;
+    border-radius: var(--radius-s);
+    transition: background 0.15s ease;
+  }
+
+  .track-row:hover {
+    background: var(--ink-soft);
+  }
+
+  .track-row.is-playing {
+    background: var(--ink-raised);
+  }
+
+  .track-row.is-playing .track-row__title {
+    color: var(--amber);
+  }
+
+  .track-row__index {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ash-dim);
+    text-align: right;
+  }
+
+  .track-row__art {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+
+  .track-row__meta {
+    min-width: 0;
+  }
+
+  .track-row__title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--paper);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .track-row__artist {
+    margin-top: 2px;
+    font-size: 0.8rem;
+    color: var(--ash);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .track-row__duration {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ash-dim);
+  }
+
+  .track-row__play {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    color: var(--ash);
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .track-row__play:hover {
+    color: var(--ink);
+    background: var(--amber);
+  }
+
+  .track-row__play--disabled {
+    color: var(--ash-dim);
+    cursor: default;
+  }
+</style>

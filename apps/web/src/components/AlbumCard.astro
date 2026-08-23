@@ -1,0 +1,139 @@
+---
+import VinylArt from './VinylArt.astro';
+
+interface Props {
+  title: string;
+  subtitle: string;
+  artwork: string;
+  href?: string;
+  /** Present only for playable tracks; albums link out instead of playing. */
+  playable?: {
+    id: string;
+    artist: string;
+    album?: string;
+    previewUrl: string;
+    durationMs?: number;
+  };
+}
+
+const { title, subtitle, artwork, href, playable } = Astro.props;
+const cardId = `card-${Math.random().toString(36).slice(2, 9)}`;
+const isExternal = href?.startsWith('http');
+---
+
+<article class="album-card">
+  <div class="album-card__art">
+    <VinylArt src={artwork} alt={`${title} artwork`} trackId={playable?.id} size={168} />
+    {
+      playable && (
+        <button
+          class="album-card__play"
+          type="button"
+          aria-label={`Play ${title} by ${playable.artist}`}
+          id={cardId}
+          data-play-button
+          data-track-id={playable.id}
+          data-title={title}
+          data-artist={playable.artist}
+          data-album={playable.album ?? ''}
+          data-artwork={artwork}
+          data-preview={playable.previewUrl}
+          data-duration={playable.durationMs ?? ''}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M8 5.5v13l11-6.5-11-6.5z" fill="currentColor" />
+          </svg>
+        </button>
+      )
+    }
+  </div>
+  <a
+    class="album-card__meta"
+    href={href ?? '#'}
+    target={isExternal ? '_blank' : undefined}
+    rel={isExternal ? 'noopener noreferrer' : undefined}
+  >
+    <p class="album-card__title">{title}</p>
+    <p class="album-card__subtitle">{subtitle}</p>
+  </a>
+</article>
+
+<style>
+  .album-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .album-card__art {
+    position: relative;
+    width: 100%;
+  }
+
+  .album-card__art :global(.vinyl) {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+
+  .album-card__art :global(.vinyl__art) {
+    width: 100%;
+    height: 100%;
+  }
+
+  .album-card__play {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    z-index: 3;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: var(--amber);
+    color: var(--ink);
+    box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  }
+
+  .album-card:hover .album-card__play,
+  .album-card:focus-within .album-card__play {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .album-card__play:hover {
+    background: var(--violet);
+  }
+
+  .album-card__meta {
+    display: block;
+    min-width: 0;
+  }
+
+  .album-card__title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--paper);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .album-card__subtitle {
+    margin-top: 3px;
+    font-size: 0.82rem;
+    color: var(--ash);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .album-card__meta:hover .album-card__title {
+    color: var(--amber);
+  }
+</style>
+

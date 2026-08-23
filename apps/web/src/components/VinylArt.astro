@@ -1,0 +1,87 @@
+---
+// The recurring signature element: artwork sits inside a vinyl-groove ring.
+// Any wrapper that carries data-track-id="…" will spin its ring when the
+// player broadcasts that this track is the one currently playing —
+// see the inline script + src/lib/events.ts for how static islands and
+// the React player talk to each other.
+interface Props {
+  src: string;
+  alt: string;
+  trackId?: string;
+  size?: number;
+  ring?: boolean;
+}
+
+const { src, alt, trackId, size = 160, ring = true } = Astro.props;
+---
+
+<div
+  class:list={['vinyl', { 'vinyl--ring': ring }]}
+  style={`--vinyl-size:${size}px`}
+  data-vinyl
+  data-track-id={trackId ?? ''}
+>
+  {
+    ring && (
+      <svg class="vinyl__grooves" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="48" />
+        <circle cx="50" cy="50" r="41" />
+        <circle cx="50" cy="50" r="34" />
+        <circle cx="50" cy="50" r="27" />
+      </svg>
+    )
+  }
+  <img class="vinyl__art" src={src} alt={alt} loading="lazy" width={size} height={size} />
+</div>
+
+<style>
+  .vinyl {
+    position: relative;
+    width: var(--vinyl-size);
+    height: var(--vinyl-size);
+    border-radius: var(--radius-m);
+    overflow: visible;
+  }
+
+  .vinyl__art {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-m);
+    box-shadow: var(--shadow-card);
+    position: relative;
+    z-index: 2;
+  }
+
+  .vinyl__grooves {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 0.6;
+    opacity: 0;
+    transform: scale(0.86);
+    transform-origin: 50% 50%;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+  }
+
+  .vinyl--ring.is-playing .vinyl__grooves {
+    opacity: 1;
+    transform: scale(1.14);
+    stroke: var(--amber-dim);
+    animation: spin 6s linear infinite;
+  }
+
+  .vinyl--ring.is-playing .vinyl__art {
+    box-shadow: 0 0 0 2px var(--amber), var(--shadow-card);
+  }
+
+  @keyframes spin {
+    to {
+      transform: scale(1.14) rotate(360deg);
+    }
+  }
+</style>
+
