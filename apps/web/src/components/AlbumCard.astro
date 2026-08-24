@@ -79,6 +79,12 @@ const isExternal = href?.startsWith('http');
   .album-card__art :global(.vinyl__art) {
     width: 100%;
     height: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .album-card:hover .album-card__art :global(.vinyl__art) {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-card);
   }
 
   .album-card__play {
@@ -93,7 +99,7 @@ const isExternal = href?.startsWith('http');
     place-items: center;
     background: var(--amber);
     color: var(--ink);
-    box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 8px 18px -8px rgba(23, 21, 29, 0.28);
     opacity: 0;
     transform: translateY(6px);
     transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
@@ -136,4 +142,3 @@ const isExternal = href?.startsWith('http');
     color: var(--amber);
   }
 </style>
-

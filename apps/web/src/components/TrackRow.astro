@@ -57,17 +57,20 @@ const playable = Boolean(previewUrl);
     grid-template-columns: 26px 44px 1fr auto 36px;
     align-items: center;
     gap: 14px;
-    padding: 9px 10px;
-    border-radius: var(--radius-s);
-    transition: background 0.15s ease;
+    padding: 10px 12px;
+    border-radius: var(--radius-m);
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
 
   .track-row:hover {
     background: var(--ink-soft);
+    box-shadow: var(--shadow-edge);
+    transform: translateY(-1px);
   }
 
   .track-row.is-playing {
-    background: var(--ink-raised);
+    background: var(--ink-soft);
+    box-shadow: var(--shadow-edge);
   }
 
   .track-row.is-playing .track-row__title {

@@ -9,18 +9,18 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
   <a class="brand" href="/">
     <svg class="brand__mark" viewBox="0 0 40 40" aria-hidden="true">
       <circle cx="20" cy="20" r="19" fill="none" stroke="var(--amber)" stroke-width="1.4" />
-      <circle cx="20" cy="20" r="13" fill="none" stroke="var(--line)" stroke-width="1" />
+      <circle cx="20" cy="20" r="13" fill="none" stroke="var(--sb-line)" stroke-width="1" />
       <circle cx="20" cy="20" r="3.4" fill="var(--amber)" />
     </svg>
-    <span class="brand__word">Groove<em>Line</em></span>
+    <span class="brand__word">Discovery<em>Music</em></span>
   </a>
 
   <nav class="nav" aria-label="Primary">
-    <p class="nav__label">Discover</p>
+    <p class="nav__label">Library</p>
     <ul class="nav__list">
       <li>
         <a href="/" class:list={{ 'is-active': isActive('/') }}>
-          <span>Home</span>
+          <span>Browse</span>
         </a>
       </li>
       <li>
@@ -42,17 +42,24 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         ))
       }
     </ul>
+
+    <p class="nav__label">My music</p>
+    <ul class="nav__list nav__list--soon" aria-disabled="true">
+      <li><span>Recently played <em class="soon-tag">Soon</em></span></li>
+      <li><span>Favorite songs <em class="soon-tag">Soon</em></span></li>
+      <li><span>Playlists <em class="soon-tag">Soon</em></span></li>
+    </ul>
   </nav>
 
   <div class="sidebar__foot">
-    <p>Catalog data via the iTunes Search API. 30-second previews only.</p>
+    <p>Catalog data via the iTunes Search API. 30-second previews only. Accounts and saved libraries are coming later.</p>
   </div>
 </aside>
 
 <style>
   .sidebar {
-    background: var(--ink-soft);
-    border-right: 1px solid var(--line);
+    background: var(--sb-bg);
+    border-right: 1px solid var(--sb-line);
     padding: 26px 20px 22px;
     display: flex;
     flex-direction: column;
@@ -78,7 +85,7 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     font-family: var(--font-display);
     font-size: 1.18rem;
     font-weight: 600;
-    color: var(--paper);
+    color: var(--sb-text);
   }
 
   .brand__word em {
@@ -97,7 +104,7 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     font-size: 0.68rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--ash-dim);
+    color: var(--sb-text-dim);
     margin: 20px 8px 8px;
   }
 
@@ -119,19 +126,19 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     padding: 9px 8px;
     border-radius: var(--radius-s);
     font-size: 0.92rem;
-    color: var(--ash);
+    color: var(--sb-text-muted);
     border-left: 2px solid transparent;
     transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
   }
 
   .nav__list a:hover {
-    color: var(--paper);
-    background: var(--ink-raised);
+    color: var(--sb-text);
+    background: var(--sb-bg-raised);
   }
 
   .nav__list a.is-active {
-    color: var(--paper);
-    background: var(--ink-raised);
+    color: var(--sb-text);
+    background: var(--sb-bg-raised);
     border-left-color: var(--amber);
   }
 
@@ -139,13 +146,40 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     font-size: 0.86rem;
   }
 
+  .nav__list--soon {
+    cursor: default;
+  }
+
+  .nav__list--soon li span {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 8px;
+    font-size: 0.86rem;
+    color: var(--sb-text-dim);
+  }
+
+  .soon-tag {
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sb-text-dim);
+    background: var(--sb-bg-raised);
+    border: 1px solid var(--sb-line);
+    border-radius: 999px;
+    padding: 2px 7px;
+  }
+
   .sidebar__foot {
     margin-top: 18px;
     padding-top: 16px;
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--sb-line);
     font-size: 0.74rem;
     line-height: 1.5;
-    color: var(--ash-dim);
+    color: var(--sb-text-dim);
   }
 
   @media (max-width: 900px) {
@@ -153,7 +187,7 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
       position: static;
       min-height: auto;
       border-right: none;
-      border-bottom: 1px solid var(--line);
+      border-bottom: 1px solid var(--sb-line);
     }
     .nav {
       overflow: visible;

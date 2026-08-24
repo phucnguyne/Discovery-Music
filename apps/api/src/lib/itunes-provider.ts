@@ -50,7 +50,10 @@ async function safeFetchJSON<T>(url: string, timeoutMs = 6000): Promise<T | null
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -59,7 +62,6 @@ async function safeFetchJSON<T>(url: string, timeoutMs = 6000): Promise<T | null
     clearTimeout(timer);
   }
 }
-
 function artworkSrc(url: string | undefined, size = 600): string {
   if (!url) return '';
   return url.replace(/\/\d+x\d+bb\.(jpg|png)/, `/${size}x${size}bb.$1`);
@@ -140,3 +142,4 @@ export async function lookupArtistTopTracks(artistId: string, limit = 10): Promi
   const data = await safeFetchJSON<{ results: (RawTrack | RawArtist)[] }>(url);
   return (data?.results.filter((r) => r.wrapperType === 'track') as RawTrack[] | undefined ?? []).map(toTrack);
 }
+

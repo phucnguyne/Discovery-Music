@@ -2,6 +2,7 @@
 import { ClientRouter } from 'astro:transitions';
 import Sidebar from '../components/Sidebar.astro';
 import MusicPlayer from '../components/react/MusicPlayer';
+import NowPlayingPanel from '../components/react/NowPlayingPanel';
 import '../styles/global.css';
 
 interface Props {
@@ -21,7 +22,7 @@ const { title, description = 'Discover songs, albums and artists from the iTunes
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <meta name="generator" content={Astro.generator} />
@@ -36,6 +37,7 @@ const { title, description = 'Discover songs, albums and artists from the iTunes
           <slot />
         </main>
       </div>
+      <NowPlayingPanel client:load transition:persist />
     </div>
     <MusicPlayer client:load transition:persist />
     <script>

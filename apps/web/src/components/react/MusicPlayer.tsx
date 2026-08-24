@@ -22,12 +22,18 @@ export default function MusicPlayer() {
   const [error, setError] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  // Set up the <audio> element once.
+  // Set up the <audio> element once. Deliberately NOT routed through the Web
+  // Audio API (no createMediaElementSource/AnalyserNode) — the iTunes preview
+  // CDN doesn't reliably send CORS headers, and connecting a cross-origin
+  // media element into a Web Audio graph without CORS gets it silently muted
+  // by the browser even though playback otherwise looks like it's working
+  // (currentTime advances, play() resolves). Keeping the <audio> element's
+  // own default output path guarantees sound actually plays; the waveform
+  // below is a lightweight simulated animation instead of real frequency
+  // analysis — a deliberate trade so audio reliability never depends on a
+  // CDN header we don't control.
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'metadata';
@@ -73,36 +79,22 @@ export default function MusicPlayer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function ensureAnalyser() {
-    if (!audioRef.current) return;
-    if (!audioCtxRef.current) {
-      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new Ctx();
-      const source = ctx.createMediaElementSource(audioRef.current);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 128;
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
-      audioCtxRef.current = ctx;
-      analyserRef.current = analyser;
-      sourceRef.current = source;
-    }
-    audioCtxRef.current.resume();
-  }
-
+  // Simulated waveform: a few overlapping sine waves sampled at the current
+  // playback position, so bars move in a musical-looking way and visibly
+  // sweep left-to-right with progress, without needing real audio analysis.
   function tickVisualizer() {
-    const analyser = analyserRef.current;
-    if (analyser) {
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteFrequencyData(data);
-      const step = Math.floor(data.length / BAR_COUNT) || 1;
-      const next: number[] = [];
-      for (let i = 0; i < BAR_COUNT; i++) {
-        const v = data[i * step] ?? 0;
-        next.push(4 + (v / 255) * 30);
-      }
-      setBars(next);
+    const audio = audioRef.current;
+    const t = audio?.currentTime ?? 0;
+    const next: number[] = [];
+    for (let i = 0; i < BAR_COUNT; i++) {
+      const phase = i * 0.35;
+      const wave =
+        Math.sin(t * 6 + phase) * 0.5 +
+        Math.sin(t * 11 + phase * 1.7) * 0.3 +
+        Math.sin(t * 2.3 + phase * 0.4) * 0.2;
+      next.push(6 + (wave * 0.5 + 0.5) * 26);
     }
+    setBars(next);
     rafRef.current = requestAnimationFrame(tickVisualizer);
   }
 
@@ -115,7 +107,6 @@ export default function MusicPlayer() {
     const audio = audioRef.current;
     if (!audio) return;
     audio.src = track.previewUrl;
-    ensureAnalyser();
     audio
       .play()
       .then(() => setIsPlaying(true))
@@ -155,7 +146,6 @@ export default function MusicPlayer() {
       audio.pause();
       setIsPlaying(false);
     } else {
-      ensureAnalyser();
       audio.play().then(() => setIsPlaying(true)).catch(() => setError('Playback was blocked — tap play again.'));
     }
   }
@@ -253,7 +243,8 @@ export default function MusicPlayer() {
           bottom: 0;
           height: var(--player-h);
           background: var(--ink-soft);
-          border-top: 1px solid var(--line);
+          border-top: none;
+          box-shadow: 0 -8px 24px -16px rgba(23, 21, 29, 0.18);
           display: grid;
           grid-template-columns: 240px 1fr 160px;
           align-items: center;
