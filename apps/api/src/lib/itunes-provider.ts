@@ -9,6 +9,10 @@ import type { Album, Artist, Track } from '@music/types';
 
 const SEARCH_URL = 'https://itunes.apple.com/search';
 const LOOKUP_URL = 'https://itunes.apple.com/lookup';
+// Real Apple-curated charts, separate service from the Search API above.
+// NOTE: this feed does NOT include artistId, only artistName — so charted
+// items can't deep-link to an artist profile the way search results can.
+const CHARTS_BASE_URL = 'https://rss.marketingtools.apple.com/api/v2';
 
 interface RawTrack {
   wrapperType: 'track';
@@ -44,6 +48,34 @@ interface RawArtist {
   artistName: string;
   primaryGenreName?: string;
   artistViewUrl?: string;
+}
+
+// Shape of items inside rss.marketingtools.apple.com's `feed.results[]`.
+// Deliberately separate from RawTrack/RawAlbum above — this is a different
+// upstream with a different (smaller) set of fields, no wrapperType tag,
+// and no artistId.
+interface RawChartSong {
+  id: string;
+  name: string;
+  artistName: string;
+  releaseDate?: string;
+  artworkUrl100?: string;
+  url?: string;
+  genres?: { genreId: string; name: string; url: string }[];
+}
+
+interface RawChartAlbum {
+  id: string;
+  name: string;
+  artistName: string;
+  releaseDate?: string;
+  artworkUrl100?: string;
+  url?: string;
+  genres?: { genreId: string; name: string; url: string }[];
+}
+
+interface ChartFeedResponse<T> {
+  feed: { title: string; results: T[] };
 }
 
 async function safeFetchJSON<T>(url: string, timeoutMs = 6000): Promise<T | null> {
@@ -106,6 +138,37 @@ function toArtist(a: RawArtist): Artist {
   };
 }
 
+// artistId is unavailable from this feed. Using '' (not a fake numeric id)
+// so downstream code can check `track.artistId === ''` to hide/disable
+// "go to artist" links instead of navigating to a wrong or invented artist.
+function chartSongToTrack(s: RawChartSong): Track {
+  return {
+    id: s.id,
+    title: s.name,
+    artistId: '',
+    artistName: s.artistName,
+    coverUrl: artworkSrc(s.artworkUrl100, 600),
+    genre: s.genres?.[0]?.name,
+    releaseDate: s.releaseDate,
+    // Chart feed has no 30s preview URL either — search API is still the
+    // only source of previewUrl in this codebase.
+    previewUrl: undefined,
+  };
+}
+
+function chartAlbumToAlbum(a: RawChartAlbum): Album {
+  return {
+    id: a.id,
+    title: a.name,
+    artistId: '',
+    artistName: a.artistName,
+    coverUrl: artworkSrc(a.artworkUrl100, 600),
+    releaseDate: a.releaseDate,
+    genre: a.genres?.[0]?.name,
+    viewUrl: a.url,
+  };
+}
+
 export async function searchTracks(term: string, limit = 12): Promise<Track[]> {
   const url = `${SEARCH_URL}?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}`;
   const data = await safeFetchJSON<{ results: RawTrack[] }>(url);
@@ -143,3 +206,14 @@ export async function lookupArtistTopTracks(artistId: string, limit = 10): Promi
   return (data?.results.filter((r) => r.wrapperType === 'track') as RawTrack[] | undefined ?? []).map(toTrack);
 }
 
+export async function fetchTopSongs(country = 'us', limit = 10): Promise<Track[]> {
+  const url = `${CHARTS_BASE_URL}/${country}/music/most-played/${limit}/songs.json`;
+  const data = await safeFetchJSON<ChartFeedResponse<RawChartSong>>(url);
+  return (data?.feed.results ?? []).map(chartSongToTrack);
+}
+
+export async function fetchTopAlbums(country = 'us', limit = 10): Promise<Album[]> {
+  const url = `${CHARTS_BASE_URL}/${country}/music/most-played/${limit}/albums.json`;
+  const data = await safeFetchJSON<ChartFeedResponse<RawChartAlbum>>(url);
+  return (data?.feed.results ?? []).map(chartAlbumToAlbum);
+}

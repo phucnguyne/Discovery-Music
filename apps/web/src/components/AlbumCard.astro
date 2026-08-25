@@ -19,6 +19,7 @@ interface Props {
 const { title, subtitle, artwork, href, playable } = Astro.props;
 const cardId = `card-${Math.random().toString(36).slice(2, 9)}`;
 const isExternal = href?.startsWith('http');
+const Tag = href ? 'a' : 'div';
 ---
 
 <article class="album-card">
@@ -47,15 +48,15 @@ const isExternal = href?.startsWith('http');
       )
     }
   </div>
-  <a
-    class="album-card__meta"
-    href={href ?? '#'}
+  <Tag
+    class:list={['album-card__meta', { 'album-card__meta--static': !href }]}
+    href={href}
     target={isExternal ? '_blank' : undefined}
     rel={isExternal ? 'noopener noreferrer' : undefined}
   >
     <p class="album-card__title">{title}</p>
     <p class="album-card__subtitle">{subtitle}</p>
-  </a>
+  </Tag>
 </article>
 
 <style>
@@ -140,5 +141,13 @@ const isExternal = href?.startsWith('http');
 
   .album-card__meta:hover .album-card__title {
     color: var(--amber);
+  }
+
+  .album-card__meta--static {
+    cursor: default;
+  }
+
+  .album-card__meta--static:hover .album-card__title {
+    color: var(--paper);
   }
 </style>

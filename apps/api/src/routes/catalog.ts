@@ -37,15 +37,21 @@ catalog.get('/search', async (c) => {
   return c.json(ok(results));
 });
 
-// GET /catalog/charts/trending
+// GET /catalog/charts/trending?country=us
 catalog.get('/charts/trending', async (c) => {
-  const tracks = await cached('charts:trending', CACHE_TTL_MS.charts, () => itunes.searchTracks('top hits', 10));
+  const country = c.req.query('country') ?? 'us';
+  const tracks = await cached(`charts:trending:${country}`, CACHE_TTL_MS.charts, () =>
+    itunes.fetchTopSongs(country, 10),
+  );
   return c.json(ok(tracks));
 });
 
-// GET /catalog/charts/new-releases
+// GET /catalog/charts/new-releases?country=us
 catalog.get('/charts/new-releases', async (c) => {
-  const albums = await cached('charts:new-releases', CACHE_TTL_MS.charts, () => itunes.searchAlbums('new album', 10));
+  const country = c.req.query('country') ?? 'us';
+  const albums = await cached(`charts:new-releases:${country}`, CACHE_TTL_MS.charts, () =>
+    itunes.fetchTopAlbums(country, 10),
+  );
   return c.json(ok(albums));
 });
 

@@ -78,7 +78,12 @@ const trendingRest = trending.slice(1, 9);
       newAlbums.length > 0 ? (
         <div class="grid-cards">
           {newAlbums.map((a) => (
-            <AlbumCard title={a.title} subtitle={a.artistName} artwork={a.coverUrl} href={`/artist/${a.artistId}`} />
+            <AlbumCard
+              title={a.title}
+              subtitle={a.artistName}
+              artwork={a.coverUrl}
+              href={a.artistId ? `/artist/${a.artistId}` : undefined}
+            />
           ))}
         </div>
       ) : (
