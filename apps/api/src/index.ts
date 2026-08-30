@@ -2,22 +2,29 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { API_PORT } from '@music/config';
+import { API_PORT, WEB_ORIGIN } from '@music/config';
 import { catalog } from './routes/catalog.js';
+import { auth } from './routes/auth.js';
 
 const app = new Hono();
 
 app.use(
   '*',
   cors({
-    origin: (origin) => origin ?? '*', // dev-friendly; lock this down per-env in production
-    allowMethods: ['GET', 'OPTIONS'],
+    // Wildcard '*' cannot be combined with credentials: true — browsers
+    // reject it outright — so once /auth's cookie exists this has to
+    // name an exact origin. WEB_ORIGIN defaults to the Astro dev port;
+    // set it per-env (see apps/api/.env.example) for anything else.
+    origin: WEB_ORIGIN,
+    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    credentials: true,
   }),
 );
 
 app.get('/health', (c) => c.json({ ok: true, service: '@music/api' }));
 
 app.route('/catalog', catalog);
+app.route('/auth', auth);
 
 app.notFound((c) => c.json({ ok: false, error: 'not found' }, 404));
 

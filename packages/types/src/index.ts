@@ -43,6 +43,15 @@ export interface Genre {
   label: string;
 }
 
+/** Public-safe user shape — never includes passwordHash or session
+ * internals. This is what @music/api sends back and what apps/web sees. */
+export interface User {
+  id: string;
+  email: string;
+  displayName: string;
+  createdAt: string; // ISO date
+}
+
 export interface SearchResults {
   tracks: Track[];
   albums: Album[];
