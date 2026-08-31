@@ -68,6 +68,8 @@ export default function SearchBar({ resultsPath = '/search', placeholder = 'Sear
         artwork: r.coverUrl,
         previewUrl: r.previewUrl as string,
         durationMs: r.durationMs,
+        artistId: r.artistId,
+        genre: r.genre,
       }));
     dispatchPlayTrack({
       id: track.id,
@@ -77,6 +79,8 @@ export default function SearchBar({ resultsPath = '/search', placeholder = 'Sear
       artwork: track.coverUrl,
       previewUrl: track.previewUrl,
       durationMs: track.durationMs,
+      artistId: track.artistId,
+      genre: track.genre,
       queue,
       queueIndex: queue.findIndex((t) => t.id === track.id),
     });

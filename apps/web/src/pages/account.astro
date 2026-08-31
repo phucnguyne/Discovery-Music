@@ -1,0 +1,61 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AccountForm from '../components/react/AccountForm';
+import { api } from '../lib/api';
+
+export const prerender = false;
+
+// Not signed in? Nothing to edit — send them to log in first.
+const user = await api.me(Astro.request.headers.get('cookie'));
+if (!user) return Astro.redirect('/login');
+---
+
+<Layout title="My account">
+  <div class="auth-page">
+    <div class="auth-card">
+      <span class="auth-card__eyebrow">GROOVELINE</span>
+      <h1 class="auth-card__title">My account</h1>
+      <p class="auth-card__subtitle">{user.email}</p>
+      <AccountForm client:load user={user} />
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .auth-page {
+    display: flex;
+    justify-content: center;
+    padding-top: 64px;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-l);
+    padding: 32px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .auth-card__eyebrow {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+
+  .auth-card__title {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+  }
+
+  .auth-card__subtitle {
+    font-size: 0.88rem;
+    color: var(--ash);
+    margin-bottom: 24px;
+  }
+</style>

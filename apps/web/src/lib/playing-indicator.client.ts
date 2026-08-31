@@ -27,5 +27,7 @@ document.addEventListener('click', (e) => {
     artwork: btn.dataset.artwork ?? '',
     previewUrl: btn.dataset.preview ?? '',
     durationMs: btn.dataset.duration ? Number(btn.dataset.duration) : undefined,
+    artistId: btn.dataset.artistId || undefined,
+    genre: btn.dataset.genre || undefined,
   });
 });

@@ -1,0 +1,39 @@
+# render.yaml — Render Blueprint. Push this repo to GitHub, then in Render:
+# New > Blueprint > pick this repo > Render reads this file and creates
+# both services below. Env vars marked `sync: false` are secrets Render
+# won't guess — you paste them in after the first deploy (see README's
+# "Deploying" section for the exact values and the two-pass reason).
+services:
+  - type: web
+    name: music-api
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @music/api typecheck
+    startCommand: pnpm --filter @music/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Supabase's Session Pooler connection string (IPv4-compatible) —
+      # see README for exactly where to copy this from.
+      - key: DATABASE_URL
+        sync: false
+      # apps/web's public URL, once you know it (see README) — needed for
+      # CORS to accept the cookie-carrying requests apps/web sends.
+      - key: WEB_ORIGIN
+        sync: false
+
+  - type: web
+    name: music-web
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @music/web build
+    startCommand: pnpm --filter @music/web start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # apps/api's public URL — this gets compiled into the client bundle
+      # at build time (Vite/Astro convention for PUBLIC_* vars), so it
+      # must already be set before this service's *first* build runs.
+      - key: PUBLIC_API_BASE_URL
+        sync: false

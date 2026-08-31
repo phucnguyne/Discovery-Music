@@ -56,7 +56,15 @@ try {
               href={`/artist/${t.artistId}`}
               playable={
                 t.previewUrl
-                  ? { id: t.id, artist: t.artistName, album: t.albumTitle, previewUrl: t.previewUrl, durationMs: t.durationMs }
+                  ? {
+                      id: t.id,
+                      artist: t.artistName,
+                      artistId: t.artistId,
+                      genre: t.genre,
+                      album: t.albumTitle,
+                      previewUrl: t.previewUrl,
+                      durationMs: t.durationMs,
+                    }
                   : undefined
               }
             />

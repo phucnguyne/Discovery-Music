@@ -8,6 +8,8 @@
 // with no native dependency at all.
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
+import type { User } from '@music/types';
+import type { users } from '../db/schema.js';
 
 const scrypt = promisify(scryptCallback);
 
@@ -46,4 +48,17 @@ export function createSessionToken(): { token: string; tokenHash: string } {
 
 export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
+}
+
+/** The DB row -> what @music/api ever sends over the wire. Shared by every
+ * route that returns a user (signup, login, me, account updates) so
+ * passwordHash can never accidentally leak through a route that forgets
+ * to strip it. */
+export function toPublicUser(row: typeof users.$inferSelect): User {
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.displayName,
+    createdAt: row.createdAt.toISOString(),
+  };
 }

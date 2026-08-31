@@ -10,6 +10,8 @@ interface Props {
   playable?: {
     id: string;
     artist: string;
+    artistId?: string;
+    genre?: string;
     album?: string;
     previewUrl: string;
     durationMs?: number;
@@ -40,6 +42,8 @@ const Tag = href ? 'a' : 'div';
           data-artwork={artwork}
           data-preview={playable.previewUrl}
           data-duration={playable.durationMs ?? ''}
+          data-artist-id={playable.artistId ?? ''}
+          data-genre={playable.genre ?? ''}
         >
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
             <path d="M8 5.5v13l11-6.5-11-6.5z" fill="currentColor" />

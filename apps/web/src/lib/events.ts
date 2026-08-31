@@ -17,6 +17,12 @@ export interface PlayTrackDetail {
   artwork: string;
   previewUrl: string;
   durationMs?: number;
+  /** Only used to record a listening event once playback actually starts
+   * (see MusicPlayer.tsx's loadTrack) — never rendered. Optional because
+   * chart-sourced tracks can have an empty artistId (see itunes-provider's
+   * chart mapping); those just don't get recorded. */
+  artistId?: string;
+  genre?: string;
   /** The rest of the current list, so next/prev in the player has somewhere to go. */
   queue?: PlayTrackDetail[];
   queueIndex?: number;

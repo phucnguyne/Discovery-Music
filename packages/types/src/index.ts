@@ -52,6 +52,15 @@ export interface User {
   createdAt: string; // ISO date
 }
 
+/** One play, as both apps/api (writing rows) and packages/domain (ranking
+ * them) need to agree on it — lives here rather than in domain so
+ * packages/api-client can return it without depending on packages/domain. */
+export interface ListeningEvent {
+  genre?: string;
+  artistId: string;
+  playedAt: string; // ISO date
+}
+
 export interface SearchResults {
   tracks: Track[];
   albums: Album[];

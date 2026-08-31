@@ -3,7 +3,7 @@ import { Hono, type Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { eq } from 'drizzle-orm';
 import { signupSchema, loginSchema } from '@music/validation';
-import type { User, ApiResult } from '@music/types';
+import type { ApiResult } from '@music/types';
 import { db } from '../db/client.js';
 import { users, sessions } from '../db/schema.js';
 import {
@@ -11,10 +11,12 @@ import {
   verifyPassword,
   createSessionToken,
   hashToken,
+  toPublicUser,
   SESSION_COOKIE,
   SESSION_TTL_MS,
 } from '../lib/auth.js';
 import { withinRateLimit } from '../lib/rate-limit.js';
+import { getSessionUserId } from '../lib/session.js';
 
 export const auth = new Hono();
 
@@ -23,15 +25,6 @@ function ok<T>(data: T): ApiResult<T> {
 }
 function err(error: string): ApiResult<never> {
   return { ok: false, error };
-}
-
-function toPublicUser(row: typeof users.$inferSelect): User {
-  return {
-    id: row.id,
-    email: row.email,
-    displayName: row.displayName,
-    createdAt: row.createdAt.toISOString(),
-  };
 }
 
 async function startSession(c: Context, userId: string) {
@@ -117,16 +110,10 @@ auth.post('/logout', async (c) => {
 
 // GET /auth/me
 auth.get('/me', async (c) => {
-  const token = getCookie(c, SESSION_COOKIE);
-  if (!token) return c.json(err('not signed in'), 401);
+  const userId = await getSessionUserId(c);
+  if (!userId) return c.json(err('not signed in'), 401);
 
-  const session = await db.query.sessions.findFirst({ where: eq(sessions.tokenHash, hashToken(token)) });
-  if (!session || session.expiresAt.getTime() < Date.now()) {
-    deleteCookie(c, SESSION_COOKIE, { path: '/' });
-    return c.json(err('not signed in'), 401);
-  }
-
-  const row = await db.query.users.findFirst({ where: eq(users.id, session.userId) });
+  const row = await db.query.users.findFirst({ where: eq(users.id, userId) });
   if (!row) return c.json(err('not signed in'), 401);
 
   return c.json(ok(toPublicUser(row)));

@@ -1,0 +1,60 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SignupForm from '../components/react/SignupForm';
+import { api } from '../lib/api';
+
+export const prerender = false;
+
+const user = await api.me(Astro.request.headers.get('cookie'));
+if (user) return Astro.redirect('/');
+---
+
+<Layout title="Sign up">
+  <div class="auth-page">
+    <div class="auth-card">
+      <span class="auth-card__eyebrow">GROOVELINE</span>
+      <h1 class="auth-card__title">Create your account</h1>
+      <p class="auth-card__subtitle">Takes a few seconds — just an email and a password.</p>
+      <SignupForm client:load />
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .auth-page {
+    display: flex;
+    justify-content: center;
+    padding-top: 64px;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-l);
+    padding: 32px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .auth-card__eyebrow {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+
+  .auth-card__title {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+  }
+
+  .auth-card__subtitle {
+    font-size: 0.88rem;
+    color: var(--ash);
+    margin-bottom: 24px;
+  }
+</style>

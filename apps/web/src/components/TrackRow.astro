@@ -5,6 +5,8 @@ interface Props {
   index?: number;
   title: string;
   artist: string;
+  artistId: string;
+  genre?: string;
   album?: string;
   artwork: string;
   trackId: string;
@@ -12,7 +14,7 @@ interface Props {
   durationMs?: number;
 }
 
-const { index, title, artist, album, artwork, trackId, previewUrl, durationMs } = Astro.props;
+const { index, title, artist, artistId, genre, album, artwork, trackId, previewUrl, durationMs } = Astro.props;
 const playable = Boolean(previewUrl);
 ---
 
@@ -38,6 +40,8 @@ const playable = Boolean(previewUrl);
         data-artwork={artwork}
         data-preview={previewUrl}
         data-duration={durationMs ?? ''}
+        data-artist-id={artistId}
+        data-genre={genre ?? ''}
       >
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
           <path d="M8 5.5v13l11-6.5-11-6.5z" fill="currentColor" />

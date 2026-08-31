@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PLAY_TRACK_EVENT, type PlayTrackDetail } from '../../lib/events';
+import { api } from '../../lib/api';
 
 const BAR_COUNT = 40;
 
@@ -109,7 +110,17 @@ export default function MusicPlayer() {
     audio.src = track.previewUrl;
     audio
       .play()
-      .then(() => setIsPlaying(true))
+      .then(() => {
+        setIsPlaying(true);
+        // Fire-and-forget, only once playback actually started (not on a
+        // merely-queued track) — this single call site covers every way a
+        // track can start: initial click, search, next/prev, and
+        // auto-advance on 'ended', so recording happens exactly once per
+        // real play, not once per UI element that could trigger one.
+        if (track.artistId) {
+          void api.recordListen({ artistId: track.artistId, genre: track.genre });
+        }
+      })
       .catch(() => setError('Playback was blocked — tap play again.'));
   }
 

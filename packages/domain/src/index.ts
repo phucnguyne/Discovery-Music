@@ -3,13 +3,13 @@
 // Deliberately not ML. Per the project notes: start with genre/artist
 // similarity from listening history, only reach for embeddings/vector
 // search later if the simple version isn't enough.
-import type { Genre } from '@music/types';
+import type { Genre, ListeningEvent } from '@music/types';
 
-export interface ListeningEvent {
-  genre?: string;
-  artistId: string;
-  playedAt: string; // ISO date
-}
+// Re-exported for backward compatibility — this used to be defined here.
+// @music/api-client also needs this shape (to type listeningHistory()'s
+// return value) without wanting a dependency on this package, so the
+// canonical definition now lives in @music/types.
+export type { ListeningEvent };
 
 /** Counts plays per genre and returns genres ranked by preference, most
  * listened first. Ties broken by recency of the most recent play. */

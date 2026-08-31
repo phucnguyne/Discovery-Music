@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "start": "node ./dist/server/entry.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "typecheck": "astro check"
@@ -16,13 +17,16 @@
     "@astrojs/node": "^11.1.4",
     "@astrojs/react": "^6.0.4",
     "@music/api-client": "workspace:*",
+    "@music/config": "workspace:*",
     "@music/domain": "workspace:*",
     "@music/types": "workspace:*",
-    "@music/config": "workspace:*",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "astro": "^7.2.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10"
   }
 }

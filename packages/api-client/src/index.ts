@@ -3,7 +3,7 @@
 // One typed surface over apps/api. Web calls this from Astro frontmatter
 // (server-side) and from the React SearchBar island (browser-side); a
 // future Expo app would import this exact same package.
-import type { ApiResult, Album, Artist, ArtistProfile, SearchResults, Track, User } from '@music/types';
+import type { ApiResult, Album, Artist, ArtistProfile, ListeningEvent, SearchResults, Track, User } from '@music/types';
 import { API_BASE_URL } from '@music/config';
 
 export interface MusicApiClientOptions {
@@ -60,9 +60,10 @@ export function createMusicApiClient(options: MusicApiClientOptions = {}) {
     login: (input: { email: string; password: string }) =>
       request<User>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
     logout: () => request<null>('/auth/logout', { method: 'POST' }),
-    /** Never throws for "not signed in" — returns null instead, since that
-     * is an expected, common state (every logged-out page load) rather
-     * than an error worth a try/catch at every call site.
+    /** Never throws — returns null for "not signed in" AND for "couldn't
+     * even reach @music/api". This runs from TopBar on every single page,
+     * so an API hiccup has to degrade to a logged-out header, not take
+     * the whole site down with it.
      *
      * `cookieHeader` is only needed when calling this from Astro
      * frontmatter (server-side): that fetch has no browser cookie jar of
@@ -72,13 +73,43 @@ export function createMusicApiClient(options: MusicApiClientOptions = {}) {
     me: async (cookieHeader?: string | null): Promise<User | null> => {
       try {
         return await request<User>('/auth/me', cookieHeader ? { headers: { Cookie: cookieHeader } } : undefined);
-      } catch (err) {
-        if (err instanceof MusicApiError && err.status === 401) return null;
-        throw err;
+      } catch {
+        return null;
+      }
+    },
+
+    updateAccount: (input: { displayName?: string; currentPassword?: string; newPassword?: string }) =>
+      request<User>('/me', { method: 'PATCH', body: JSON.stringify(input) }),
+
+    /** Fire-and-forget: called from the player the moment a track actually
+     * starts. Never throws — not signed in, or @music/api being briefly
+     * unreachable, is never worth interrupting playback over; the only
+     * cost is that this one play doesn't shape future recommendations. */
+    recordListen: async (input: { artistId: string; genre?: string }): Promise<void> => {
+      try {
+        await request<null>('/me/listening-events', { method: 'POST', body: JSON.stringify(input) });
+      } catch {
+        // best-effort — see doc comment above
+      }
+    },
+
+    /** Never throws — returns [] rather than surfacing "not signed in" or
+     * an unreachable API as an error, matching me()'s philosophy: this
+     * feeds packages/domain's cold-start fallback, so "no history" and
+     * "couldn't check" both just mean "show the cold-start pick". */
+    listeningHistory: async (cookieHeader?: string | null): Promise<ListeningEvent[]> => {
+      try {
+        return await request<ListeningEvent[]>(
+          '/me/listening-events?limit=50',
+          cookieHeader ? { headers: { Cookie: cookieHeader } } : undefined,
+        );
+      } catch {
+        return [];
       }
     },
   };
 }
 
 export type MusicApiClient = ReturnType<typeof createMusicApiClient>;
-export type { Track, Album, Artist, SearchResults, ArtistProfile, User };
+export type { Track, Album, Artist, SearchResults, ArtistProfile, User, ListeningEvent };
+

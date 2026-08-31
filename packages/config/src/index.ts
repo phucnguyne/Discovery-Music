@@ -7,7 +7,10 @@
 const env: Record<string, string | undefined> =
   typeof process !== 'undefined' && process.env ? process.env : {};
 
-export const API_PORT = Number(env.API_PORT ?? 4322);
+// PORT is the convention nearly every PaaS (Render, Railway, Heroku, ...)
+// injects to tell the app which port to bind — it must win whenever set.
+// API_PORT stays as the local-dev-only override/default.
+export const API_PORT = Number(env.PORT ?? env.API_PORT ?? 4322);
 
 export const API_BASE_URL = env.PUBLIC_API_BASE_URL ?? `http://localhost:${API_PORT}`;
 

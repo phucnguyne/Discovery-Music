@@ -1,0 +1,62 @@
+---
+import Layout from '../layouts/Layout.astro';
+import LoginForm from '../components/react/LoginForm';
+import { api } from '../lib/api';
+
+export const prerender = false;
+
+// Already signed in? Don't show the form — go straight home. Forwarding
+// the cookie here for the same reason TopBar does (see its comment).
+const user = await api.me(Astro.request.headers.get('cookie'));
+if (user) return Astro.redirect('/');
+---
+
+<Layout title="Log in">
+  <div class="auth-page">
+    <div class="auth-card">
+      <span class="auth-card__eyebrow">GROOVELINE</span>
+      <h1 class="auth-card__title">Welcome back</h1>
+      <p class="auth-card__subtitle">Log in to pick up where you left off.</p>
+      <LoginForm client:load />
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .auth-page {
+    display: flex;
+    justify-content: center;
+    padding-top: 64px;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-l);
+    padding: 32px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .auth-card__eyebrow {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+
+  .auth-card__title {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+  }
+
+  .auth-card__subtitle {
+    font-size: 0.88rem;
+    color: var(--ash);
+    margin-bottom: 24px;
+  }
+</style>

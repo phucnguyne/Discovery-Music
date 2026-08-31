@@ -19,9 +19,12 @@ try {
   apiUnreachable = true;
 }
 
-// No listening history yet (that lands once accounts/auth exist), so this
-// is the cold-start path: pick a random genre to seed "Recommended for you".
-const recommendedSeed = pickRecommendationSeed([], GENRES);
+// Real listening history once signed in (api.listeningHistory never
+// throws — [] for logged-out, unreachable API, or genuinely no history
+// yet, all of which should fall through to pickRecommendationSeed's own
+// cold-start/random path exactly the same way).
+const history = await api.listeningHistory(Astro.request.headers.get('cookie'));
+const recommendedSeed = pickRecommendationSeed(history, GENRES);
 let recommended: Awaited<ReturnType<typeof api.genre>>['tracks'] = [];
 try {
   const genreResult = await api.genre(recommendedSeed.slug);
@@ -58,6 +61,8 @@ const trendingRest = trending.slice(1, 9);
               index={i + 1}
               title={t.title}
               artist={t.artistName}
+              artistId={t.artistId}
+              genre={t.genre}
               album={t.albumTitle}
               artwork={t.coverUrl}
               trackId={t.id}
@@ -118,7 +123,15 @@ const trendingRest = trending.slice(1, 9);
               href={`/artist/${t.artistId}`}
               playable={
                 t.previewUrl
-                  ? { id: t.id, artist: t.artistName, album: t.albumTitle, previewUrl: t.previewUrl, durationMs: t.durationMs }
+                  ? {
+                      id: t.id,
+                      artist: t.artistName,
+                      artistId: t.artistId,
+                      genre: t.genre,
+                      album: t.albumTitle,
+                      previewUrl: t.previewUrl,
+                      durationMs: t.durationMs,
+                    }
                   : undefined
               }
             />
