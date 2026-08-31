@@ -32,6 +32,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # @astrojs/node's standalone server defaults to binding only
+      # localhost — invisible to Render's port scan, which checks 0.0.0.0.
+      - key: HOST
+        value: 0.0.0.0
       # apps/api's public URL — this gets compiled into the client bundle
       # at build time (Vite/Astro convention for PUBLIC_* vars), so it
       # must already be set before this service's *first* build runs.

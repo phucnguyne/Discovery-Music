@@ -30,8 +30,7 @@ app.route('/me', me);
 
 app.notFound((c) => c.json({ ok: false, error: 'not found' }, 404));
 
-serve({ fetch: app.fetch, port: API_PORT }, (info) => {
+serve({ fetch: app.fetch, port: API_PORT, hostname: '0.0.0.0' }, (info) => {
   // eslint-disable-next-line no-console
-  console.log(`@music/api listening on http://localhost:${info.port}`);
+  console.log(`@music/api listening on http://0.0.0.0:${info.port}`);
 });
-
