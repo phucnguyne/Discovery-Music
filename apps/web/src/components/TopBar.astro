@@ -1,20 +1,12 @@
 ---
 import SearchBar from './react/SearchBar';
 import AccountMenu from './react/AccountMenu';
-import { api } from '../lib/api';
 
 interface Props {
   eyebrow?: string;
   title?: string;
 }
 const { eyebrow, title } = Astro.props;
-
-// Server-side fetch has no browser cookie jar of its own — forward the
-// incoming request's Cookie header explicitly so this reflects the same
-// session the browser has. Every page that renders TopBar gets this for
-// free, so a fresh page load (not just client-side nav) always shows the
-// right logged-in/out state, no flash of the wrong one.
-const user = await api.me(Astro.request.headers.get('cookie'));
 ---
 
 <header class="topbar">
@@ -25,7 +17,7 @@ const user = await api.me(Astro.request.headers.get('cookie'));
   <div class="topbar__search">
     <SearchBar client:load transition:persist />
   </div>
-  <AccountMenu client:load user={user} />
+  <AccountMenu client:load />
 </header>
 
 <style>

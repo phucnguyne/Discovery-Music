@@ -1,8 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { MusicApiError } from '@music/api-client';
 
 export default function LoginForm() {
+  // SSR can't check this (see AccountMenu.tsx's comment on why) — check
+  // client-side and bounce home if a session cookie already checks out.
+  useEffect(() => {
+    api.me().then((u) => {
+      if (u) window.location.href = '/';
+    });
+  }, []);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);

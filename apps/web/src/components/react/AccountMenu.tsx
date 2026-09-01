@@ -1,27 +1,51 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import type { User } from '@music/types';
 
-interface Props {
-  /** Rendered server-side by TopBar.astro (api.me() with the request's
-   * cookie forwarded) — no client-side fetch needed just to paint this. */
-  user: User | null;
-}
-
-export default function AccountMenu({ user }: Props) {
+export default function AccountMenu() {
+  // No server-rendered initial state: apps/api and apps/web are on
+  // different domains in production, so a browser navigating to
+  // apps/web never sends apps/api's session cookie along — Astro's SSR
+  // has no way to know who's logged in. This has to be a client-side
+  // fetch (the browser DOES hold and send apps/api's cookie once it's
+  // asked to, via credentials:'include'), which means every page load
+  // briefly shows "logged out" before this resolves — acceptable
+  // tradeoff for two services on separate onrender.com subdomains with
+  // no shared parent domain to scope a cookie to.
+  const [user, setUser] = useState<User | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.me().then((u) => {
+      if (!cancelled) {
+        setUser(u);
+        setLoaded(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleLogout() {
     setLoggingOut(true);
     try {
       await api.logout();
     } finally {
-      // Full reload, not a client-side route change: every page does its
-      // own server-side api.me() check (TopBar, /login, /signup), and a
-      // reload is the simplest way to make all of them re-agree with the
-      // now-cleared cookie in one shot.
       window.location.href = '/';
     }
+  }
+
+  // Nothing rendered until the check resolves — a beat of blank space
+  // reads better than a flash of "Log in" that then flips to a name.
+  if (!loaded) {
+    return (
+      <div className="account-menu account-menu--placeholder" aria-hidden="true">
+        <style>{`.account-menu--placeholder { display: inline-block; width: 130px; height: 30px; flex: none; }`}</style>
+      </div>
+    );
   }
 
   if (!user) {

@@ -34,10 +34,19 @@ async function startSession(c: Context, userId: string) {
     tokenHash,
     expiresAt: new Date(Date.now() + SESSION_TTL_MS),
   });
+  const isProd = process.env.NODE_ENV === 'production';
   setCookie(c, SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
+    // In prod, apps/api and apps/web are on two different onrender.com
+    // hostnames — different "sites" to a browser — so any request from
+    // apps/web's pages to apps/api is cross-site. SameSite=Lax silently
+    // drops the cookie on cross-site fetch(); it only ever worked in dev
+    // because localhost:4321/4322 share a cookie jar (cookies aren't
+    // port-scoped). SameSite=None requires Secure, which requires HTTPS —
+    // fine in prod (Render is HTTPS-only), but breaks local http dev, so
+    // this only flips to None when NODE_ENV=production.
+    secure: isProd,
+    sameSite: isProd ? 'None' : 'Lax',
     path: '/',
     maxAge: SESSION_TTL_MS / 1000,
   });

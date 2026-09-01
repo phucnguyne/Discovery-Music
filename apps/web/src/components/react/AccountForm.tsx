@@ -1,13 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { MusicApiError } from '@music/api-client';
 import type { User } from '@music/types';
 
-interface Props {
-  user: User;
+export default function AccountForm() {
+  // Same reasoning as AccountMenu: apps/api and apps/web are different
+  // domains in prod, so Astro's SSR (account.astro) can never know who's
+  // logged in — this page has to gate itself client-side instead.
+  const [user, setUser] = useState<User | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.me().then((u) => {
+      if (cancelled) return;
+      if (!u) {
+        window.location.href = '/login';
+        return;
+      }
+      setUser(u);
+      setLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!loaded || !user) {
+    return <p className="account-forms__loading">Loading your account…</p>;
+  }
+
+  return <AccountFormFields user={user} />;
 }
 
-export default function AccountForm({ user }: Props) {
+function AccountFormFields({ user }: { user: User }) {
   const [displayName, setDisplayName] = useState(user.displayName);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -122,6 +148,7 @@ export default function AccountForm({ user }: Props) {
       </form>
 
       <style>{`
+        .account-forms__loading { font-size: 0.9rem; color: var(--ash); }
         .account-forms { display: flex; flex-direction: column; gap: 32px; }
         .account-forms__heading { font-size: 1.05rem; margin-bottom: 4px; }
         .auth-form { display: flex; flex-direction: column; gap: 16px; }

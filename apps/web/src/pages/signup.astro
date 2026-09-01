@@ -1,12 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import SignupForm from '../components/react/SignupForm';
-import { api } from '../lib/api';
-
-export const prerender = false;
-
-const user = await api.me(Astro.request.headers.get('cookie'));
-if (user) return Astro.redirect('/');
 ---
 
 <Layout title="Sign up">

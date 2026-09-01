@@ -1,14 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import LoginForm from '../components/react/LoginForm';
-import { api } from '../lib/api';
-
-export const prerender = false;
-
-// Already signed in? Don't show the form — go straight home. Forwarding
-// the cookie here for the same reason TopBar does (see its comment).
-const user = await api.me(Astro.request.headers.get('cookie'));
-if (user) return Astro.redirect('/');
 ---
 
 <Layout title="Log in">

@@ -1,13 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import AccountForm from '../components/react/AccountForm';
-import { api } from '../lib/api';
 
-export const prerender = false;
-
-// Not signed in? Nothing to edit — send them to log in first.
-const user = await api.me(Astro.request.headers.get('cookie'));
-if (!user) return Astro.redirect('/login');
+// No SSR auth gate here — see AccountForm.tsx's comment: apps/api and
+// apps/web are different domains in prod, so Astro's SSR has no way to
+// see the session cookie. AccountForm checks client-side instead and
+// redirects to /login itself if there's no one signed in.
 ---
 
 <Layout title="My account">
@@ -15,8 +13,7 @@ if (!user) return Astro.redirect('/login');
     <div class="auth-card">
       <span class="auth-card__eyebrow">GROOVELINE</span>
       <h1 class="auth-card__title">My account</h1>
-      <p class="auth-card__subtitle">{user.email}</p>
-      <AccountForm client:load user={user} />
+      <AccountForm client:load />
     </div>
   </div>
 </Layout>
