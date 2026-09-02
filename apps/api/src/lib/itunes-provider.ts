@@ -209,11 +209,63 @@ export async function lookupArtistTopTracks(artistId: string, limit = 10): Promi
 export async function fetchTopSongs(country = 'us', limit = 10): Promise<Track[]> {
   const url = `${CHARTS_BASE_URL}/${country}/music/most-played/${limit}/songs.json`;
   const data = await safeFetchJSON<ChartFeedResponse<RawChartSong>>(url);
-  return (data?.feed.results ?? []).map(chartSongToTrack);
+  const baseTracks = (data?.feed.results ?? []).map(chartSongToTrack);
+
+  // The chart RSS feed doesn't include previewUrl or durationMs. Hydrate
+  // each track via a targeted iTunes Search API lookup so the UI can show
+  // play buttons and actual duration instead of "--:--".
+  const hydrated = await Promise.allSettled(
+    baseTracks.map(async (track) => {
+      const query = `${track.title} ${track.artistName}`;
+      const searchUrl = `${SEARCH_URL}?term=${encodeURIComponent(query)}&media=music&entity=song&limit=5`;
+      const searchData = await safeFetchJSON<{ results: RawTrack[] }>(searchUrl);
+      const results = (searchData?.results ?? []).filter((r) => r.wrapperType === 'track');
+
+      // Try to find an exact match by name + artist to avoid misattribution.
+      const match =
+        results.find(
+          (r) =>
+            r.trackName.toLowerCase() === track.title.toLowerCase() &&
+            r.artistName.toLowerCase() === track.artistName.toLowerCase(),
+        ) ?? results[0];
+
+      if (match) {
+        return {
+          ...track,
+          // Prefer the chart id so vinyl-art / is-playing highlighting stays
+          // consistent, but pull the missing media fields from the search hit.
+          artistId: String(match.artistId),
+          previewUrl: match.previewUrl,
+          durationMs: match.trackTimeMillis,
+        };
+      }
+      return track;
+    }),
+  );
+
+  return hydrated.map((r, i) => (r.status === 'fulfilled' ? r.value : baseTracks[i]));
 }
 
 export async function fetchTopAlbums(country = 'us', limit = 10): Promise<Album[]> {
   const url = `${CHARTS_BASE_URL}/${country}/music/most-played/${limit}/albums.json`;
   const data = await safeFetchJSON<ChartFeedResponse<RawChartAlbum>>(url);
-  return (data?.feed.results ?? []).map(chartAlbumToAlbum);
+  const baseAlbums = (data?.feed.results ?? []).map(chartAlbumToAlbum);
+
+  const hydrated = await Promise.allSettled(
+    baseAlbums.map(async (album) => {
+      const query = `${album.title} ${album.artistName}`;
+      const searchUrl = `${SEARCH_URL}?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`;
+      const searchData = await safeFetchJSON<{ results: RawTrack[] }>(searchUrl);
+      const firstTrack = (searchData?.results ?? []).find((r) => r.wrapperType === 'track');
+      if (firstTrack && firstTrack.previewUrl) {
+        return {
+          ...album,
+          topTrack: toTrack(firstTrack)
+        };
+      }
+      return album;
+    })
+  );
+
+  return hydrated.map((r, i) => (r.status === 'fulfilled' ? r.value : baseAlbums[i]));
 }

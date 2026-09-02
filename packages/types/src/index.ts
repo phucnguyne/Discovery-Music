@@ -21,6 +21,8 @@ export interface Album {
   trackCount?: number;
   genre?: string;
   viewUrl?: string;
+  /** Optional top track used to make the album playable in UI cards. */
+  topTrack?: Track;
 }
 
 export interface Track {

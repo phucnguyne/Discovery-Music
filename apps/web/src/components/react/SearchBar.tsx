@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { dispatchPlayTrack } from '../../lib/events';
 import { api } from '../../lib/api';
 import type { Track } from '@music/types';
+import { navigate } from 'astro:transitions/client';
 
 interface Props {
   /** Where the full results page lives; Enter navigates here with ?q= */
@@ -53,7 +54,7 @@ export default function SearchBar({ resultsPath = '/search', placeholder = 'Sear
 
   function goToResults() {
     if (!term.trim()) return;
-    window.location.href = `${resultsPath}?q=${encodeURIComponent(term.trim())}`;
+    navigate(`${resultsPath}?q=${encodeURIComponent(term.trim())}`);
   }
 
   function play(track: Track) {

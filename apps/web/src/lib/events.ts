@@ -8,6 +8,7 @@
 // window, not through props" pattern.
 
 export const PLAY_TRACK_EVENT = 'musicdisco:play-track';
+export const PLAY_STATE_EVENT = 'musicdisco:play-state';
 
 export interface PlayTrackDetail {
   id: string;
@@ -31,3 +32,4 @@ export interface PlayTrackDetail {
 export function dispatchPlayTrack(detail: PlayTrackDetail) {
   window.dispatchEvent(new CustomEvent<PlayTrackDetail>(PLAY_TRACK_EVENT, { detail }));
 }
+

@@ -19,11 +19,11 @@ export default function MusicPlayer() {
   const [progress, setProgress] = useState(0); // seconds
   const [duration, setDuration] = useState(30); // preview clips are ~30s
   const [volume, setVolume] = useState(0.85);
-  const [bars, setBars] = useState<number[]>(() => Array(BAR_COUNT).fill(4));
   const [error, setError] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rafRef = useRef<number | null>(null);
+  const waveformRef = useRef<HTMLDivElement>(null);
 
   // Set up the <audio> element once. Deliberately NOT routed through the Web
   // Audio API (no createMediaElementSource/AnalyserNode) — the iTunes preview
@@ -76,28 +76,15 @@ export default function MusicPlayer() {
     const q = queueRef.current;
     if (!q.length) return;
     const clamped = ((idx % q.length) + q.length) % q.length;
-    loadTrack(q[clamped], q, clamped);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const nextTrack = q[clamped];
+    window.dispatchEvent(
+      new CustomEvent(PLAY_TRACK_EVENT, {
+        detail: { ...nextTrack, queue: q, queueIndex: clamped },
+      })
+    );
   }, []);
 
-  // Simulated waveform: a few overlapping sine waves sampled at the current
-  // playback position, so bars move in a musical-looking way and visibly
-  // sweep left-to-right with progress, without needing real audio analysis.
-  function tickVisualizer() {
-    const audio = audioRef.current;
-    const t = audio?.currentTime ?? 0;
-    const next: number[] = [];
-    for (let i = 0; i < BAR_COUNT; i++) {
-      const phase = i * 0.35;
-      const wave =
-        Math.sin(t * 6 + phase) * 0.5 +
-        Math.sin(t * 11 + phase * 1.7) * 0.3 +
-        Math.sin(t * 2.3 + phase * 0.4) * 0.2;
-      next.push(6 + (wave * 0.5 + 0.5) * 26);
-    }
-    setBars(next);
-    rafRef.current = requestAnimationFrame(tickVisualizer);
-  }
+
 
   function loadTrack(track: PlayTrackDetail, newQueue: PlayTrackDetail[], idx: number) {
     setError(null);
@@ -136,19 +123,61 @@ export default function MusicPlayer() {
     return () => window.removeEventListener(PLAY_TRACK_EVENT, handler as EventListener);
   }, []);
 
-  // Drive the visualizer only while actually playing.
+  // Drive the visualizer independently of React renders for maximum performance and stability.
   useEffect(() => {
-    if (isPlaying) {
+    let active = true;
+
+    function tickVisualizer() {
+      if (!active) return;
+      const audio = audioRef.current;
+      const container = waveformRef.current;
+      
+      if (container) {
+        const children = container.children;
+        if (!audio || audio.paused) {
+          for (let i = 0; i < children.length; i++) {
+            if (children[i].tagName === 'SPAN') {
+              (children[i] as HTMLElement).style.height = '4px';
+            }
+          }
+        } else {
+          const t = audio.currentTime;
+          let spanIdx = 0;
+          for (let i = 0; i < children.length; i++) {
+            if (children[i].tagName === 'SPAN') {
+              const phase = spanIdx * 0.35;
+              const wave =
+                Math.sin(t * 6 + phase) * 0.5 +
+                Math.sin(t * 11 + phase * 1.7) * 0.3 +
+                Math.sin(t * 2.3 + phase * 0.4) * 0.2;
+              const h = 6 + (wave * 0.5 + 0.5) * 26;
+              (children[i] as HTMLElement).style.height = `${h}px`;
+              spanIdx++;
+            }
+          }
+        }
+      }
       rafRef.current = requestAnimationFrame(tickVisualizer);
-    } else if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      setBars((b) => b.map(() => 4));
     }
+
+    rafRef.current = requestAnimationFrame(tickVisualizer);
+
     return () => {
+      active = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying]);
+  }, []);
+
+  // Broadcast our true play state so vinyls can spin/pause in sync.
+  useEffect(() => {
+    if (current) {
+      window.dispatchEvent(
+        new CustomEvent('musicdisco:play-state', {
+          detail: { id: current.id, isPlaying },
+        })
+      );
+    }
+  }, [current, isPlaying]);
 
   function togglePlay() {
     const audio = audioRef.current;
@@ -212,13 +241,13 @@ export default function MusicPlayer() {
 
         <div className="player__scrub">
           <span className="player__time">{formatTime(progress)}</span>
-          <div className="player__waveform" aria-hidden="true">
-            {bars.map((h, i) => (
+          <div className="player__waveform" aria-hidden="true" ref={waveformRef}>
+            {Array.from({ length: BAR_COUNT }).map((_, i) => (
               <span
                 key={i}
                 className="player__bar"
                 style={{
-                  height: `${h}px`,
+                  height: '4px',
                   background: i / BAR_COUNT < progress / (duration || 30) ? 'var(--amber)' : 'var(--line)',
                 }}
               />
