@@ -1,22 +1,49 @@
 // apps/api/src/lib/session.ts
 import type { Context } from 'hono';
-import { getCookie, deleteCookie } from 'hono/cookie';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { sessions } from '../db/schema.js';
-import { SESSION_COOKIE, hashToken } from './auth.js';
+import { refreshTokens } from '../db/schema.js';
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  ACCESS_TOKEN_TTL_MS,
+  verifyAccessToken,
+  createAccessToken,
+  hashToken,
+} from './auth.js';
 
-/** Resolves the signed-in user's id from the request's session cookie, or
- * null if there isn't one / it's expired. Shared by /auth/me and every
- * /me/* route so "what does a valid session look like" lives in one place. */
+/** Resolves the signed-in user's id from the request's cookies. 
+ * First checks the short-lived access token. If missing or expired, 
+ * attempts to transparently refresh using the long-lived refresh token. */
 export async function getSessionUserId(c: Context): Promise<string | null> {
-  const token = getCookie(c, SESSION_COOKIE);
-  if (!token) return null;
+  const accessToken = getCookie(c, ACCESS_TOKEN_COOKIE);
+  if (accessToken) {
+    const userId = await verifyAccessToken(accessToken);
+    if (userId) return userId;
+  }
 
-  const session = await db.query.sessions.findFirst({ where: eq(sessions.tokenHash, hashToken(token)) });
-  if (!session || session.expiresAt.getTime() < Date.now()) {
-    deleteCookie(c, SESSION_COOKIE, { path: '/' });
+  // Fallback: try refresh token
+  const refreshToken = getCookie(c, REFRESH_TOKEN_COOKIE);
+  if (!refreshToken) return null;
+
+  const rt = await db.query.refreshTokens.findFirst({ where: eq(refreshTokens.tokenHash, hashToken(refreshToken)) });
+  if (!rt || rt.expiresAt.getTime() < Date.now()) {
+    deleteCookie(c, REFRESH_TOKEN_COOKIE, { path: '/' });
+    deleteCookie(c, ACCESS_TOKEN_COOKIE, { path: '/' });
     return null;
   }
-  return session.userId;
+
+  // Transparently refresh the access token
+  const newAccessToken = await createAccessToken(rt.userId);
+  const isProd = process.env.NODE_ENV === 'production';
+  setCookie(c, ACCESS_TOKEN_COOKIE, newAccessToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'None' : ('Lax' as const),
+    path: '/',
+    maxAge: ACCESS_TOKEN_TTL_MS / 1000,
+  });
+
+  return rt.userId;
 }

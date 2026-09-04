@@ -15,11 +15,10 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-// Session tokens are never stored raw — only a SHA-256 hash of the token
-// that lives in the user's cookie. A stolen DB row can't be replayed as a
-// cookie; see lib/auth.ts for the hashing.
-export const sessions = pgTable(
-  'sessions',
+// Refresh tokens are long-lived tokens stored in the DB (hashed)
+// to securely issue new access tokens when they expire.
+export const refreshTokens = pgTable(
+  'refresh_tokens',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     userId: uuid('user_id')
@@ -29,7 +28,7 @@ export const sessions = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('sessions_user_id_idx').on(table.userId)],
+  (table) => [index('refresh_tokens_user_id_idx').on(table.userId)],
 );
 
 // Not wired into any route yet — this is the storage-shaped seam for

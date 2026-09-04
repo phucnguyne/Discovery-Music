@@ -58,7 +58,7 @@ export default function SignupForm() {
         <input
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
           minLength={8}
           maxLength={72}

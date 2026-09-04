@@ -8,6 +8,13 @@
       "when": 1787936699083,
       "tag": "0000_last_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788452301495,
+      "tag": "0001_regular_silver_surfer",
+      "breakpoints": true
     }
   ]
 }

@@ -5,15 +5,18 @@ import { eq } from 'drizzle-orm';
 import { signupSchema, loginSchema } from '@music/validation';
 import type { ApiResult } from '@music/types';
 import { db } from '../db/client.js';
-import { users, sessions } from '../db/schema.js';
+import { users, refreshTokens } from '../db/schema.js';
 import {
   hashPassword,
   verifyPassword,
-  createSessionToken,
+  createRefreshToken,
+  createAccessToken,
   hashToken,
   toPublicUser,
-  SESSION_COOKIE,
-  SESSION_TTL_MS,
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  ACCESS_TOKEN_TTL_MS,
+  REFRESH_TOKEN_TTL_MS,
 } from '../lib/auth.js';
 import { withinRateLimit } from '../lib/rate-limit.js';
 import { getSessionUserId } from '../lib/session.js';
@@ -28,27 +31,32 @@ function err(error: string): ApiResult<never> {
 }
 
 async function startSession(c: Context, userId: string) {
-  const { token, tokenHash } = createSessionToken();
-  await db.insert(sessions).values({
+  const { token, tokenHash } = createRefreshToken();
+  const accessToken = await createAccessToken(userId);
+  
+  await db.insert(refreshTokens).values({
     userId,
     tokenHash,
-    expiresAt: new Date(Date.now() + SESSION_TTL_MS),
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
   });
+  
   const isProd = process.env.NODE_ENV === 'production';
-  setCookie(c, SESSION_COOKIE, token, {
+  const sameSite = isProd ? 'None' as const : 'Lax' as const;
+  
+  setCookie(c, REFRESH_TOKEN_COOKIE, token, {
     httpOnly: true,
-    // In prod, apps/api and apps/web are on two different onrender.com
-    // hostnames — different "sites" to a browser — so any request from
-    // apps/web's pages to apps/api is cross-site. SameSite=Lax silently
-    // drops the cookie on cross-site fetch(); it only ever worked in dev
-    // because localhost:4321/4322 share a cookie jar (cookies aren't
-    // port-scoped). SameSite=None requires Secure, which requires HTTPS —
-    // fine in prod (Render is HTTPS-only), but breaks local http dev, so
-    // this only flips to None when NODE_ENV=production.
     secure: isProd,
-    sameSite: isProd ? 'None' : 'Lax',
+    sameSite,
     path: '/',
-    maxAge: SESSION_TTL_MS / 1000,
+    maxAge: REFRESH_TOKEN_TTL_MS / 1000,
+  });
+  
+  setCookie(c, ACCESS_TOKEN_COOKIE, accessToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite,
+    path: '/',
+    maxAge: ACCESS_TOKEN_TTL_MS / 1000,
   });
 }
 
@@ -109,11 +117,38 @@ auth.post('/login', async (c) => {
 
 // POST /auth/logout
 auth.post('/logout', async (c) => {
-  const token = getCookie(c, SESSION_COOKIE);
+  const token = getCookie(c, REFRESH_TOKEN_COOKIE);
   if (token) {
-    await db.delete(sessions).where(eq(sessions.tokenHash, hashToken(token)));
+    await db.delete(refreshTokens).where(eq(refreshTokens.tokenHash, hashToken(token)));
   }
-  deleteCookie(c, SESSION_COOKIE, { path: '/' });
+  deleteCookie(c, REFRESH_TOKEN_COOKIE, { path: '/' });
+  deleteCookie(c, ACCESS_TOKEN_COOKIE, { path: '/' });
+  return c.json(ok(null));
+});
+
+// POST /auth/refresh
+auth.post('/refresh', async (c) => {
+  const token = getCookie(c, REFRESH_TOKEN_COOKIE);
+  if (!token) return c.json(err('not signed in'), 401);
+
+  const rt = await db.query.refreshTokens.findFirst({ where: eq(refreshTokens.tokenHash, hashToken(token)) });
+  if (!rt || rt.expiresAt.getTime() < Date.now()) {
+    deleteCookie(c, REFRESH_TOKEN_COOKIE, { path: '/' });
+    deleteCookie(c, ACCESS_TOKEN_COOKIE, { path: '/' });
+    return c.json(err('session expired'), 401);
+  }
+
+  const accessToken = await createAccessToken(rt.userId);
+  const isProd = process.env.NODE_ENV === 'production';
+  
+  setCookie(c, ACCESS_TOKEN_COOKIE, accessToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'None' : ('Lax' as const),
+    path: '/',
+    maxAge: ACCESS_TOKEN_TTL_MS / 1000,
+  });
+
   return c.json(ok(null));
 });
 
