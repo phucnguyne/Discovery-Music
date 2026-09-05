@@ -1,7 +1,7 @@
 // apps/api/src/routes/catalog.ts
 import { Hono } from 'hono';
 import type { ApiResult, ArtistProfile, SearchResults } from '@music/types';
-import { searchQuerySchema, genreSlugSchema, artistIdSchema } from '@music/validation';
+import { searchQuerySchema, genreSlugSchema, artistIdSchema, albumIdSchema } from '@music/validation';
 import { CACHE_TTL_MS } from '@music/config';
 import { cached } from '../lib/cache.js';
 import { findGenre } from '../lib/genres.js';
@@ -92,4 +92,19 @@ catalog.get('/artists/:id', async (c) => {
 
   if (!profile) return c.json(fail('artist not found'), 404);
   return c.json(ok(profile));
+});
+
+// GET /catalog/albums/:id — an album's own info plus its full tracklist.
+// This is the "New releases" cards' click target: chart albums come with
+// an id but no artistId (see itunes-provider's chart mapping), so linking
+// to /artist/:id isn't possible for them — this route doesn't need one.
+catalog.get('/albums/:id', async (c) => {
+  const parsed = albumIdSchema.safeParse({ id: c.req.param('id') });
+  if (!parsed.success) return c.json(fail('invalid album id'), 400);
+  const { id } = parsed.data;
+
+  const result = await cached(`album:${id}`, CACHE_TTL_MS.artist, () => itunes.lookupAlbum(id, 25));
+
+  if (!result) return c.json(fail('album not found'), 404);
+  return c.json(ok(result));
 });

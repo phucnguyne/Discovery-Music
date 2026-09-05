@@ -54,6 +54,7 @@ export function createMusicApiClient(options: MusicApiClientOptions = {}) {
       `/catalog/genres/${encodeURIComponent(slug)}`,
     ),
     artist: (id: string) => request<ArtistProfile>(`/catalog/artists/${encodeURIComponent(id)}`),
+    album: (id: string) => request<{ album: Album; tracks: Track[] }>(`/catalog/albums/${encodeURIComponent(id)}`),
 
     signup: (input: { email: string; password: string; displayName: string }) =>
       request<User>('/auth/signup', { method: 'POST', body: JSON.stringify(input) }),

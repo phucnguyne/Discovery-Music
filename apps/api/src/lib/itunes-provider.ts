@@ -269,3 +269,16 @@ export async function fetchTopAlbums(country = 'us', limit = 10): Promise<Album[
 
   return hydrated.map((r, i) => (r.status === 'fulfilled' ? r.value : baseAlbums[i]));
 }
+
+// Lookup by collectionId with entity=song returns the album's own record
+// (wrapperType 'collection') *plus* every track on it in one response —
+// this is what powers the album detail page's tracklist.
+export async function lookupAlbum(albumId: string, limit = 25): Promise<{ album: Album; tracks: Track[] } | null> {
+  const url = `${LOOKUP_URL}?id=${albumId}&entity=song&limit=${limit}`;
+  const data = await safeFetchJSON<{ results: (RawAlbum | RawTrack)[] }>(url);
+  const results = data?.results ?? [];
+  const albumRaw = results.find((r): r is RawAlbum => r.wrapperType === 'collection');
+  if (!albumRaw) return null;
+  const tracks = (results.filter((r) => r.wrapperType === 'track') as RawTrack[]).map(toTrack);
+  return { album: toAlbum(albumRaw), tracks };
+}

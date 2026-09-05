@@ -1,0 +1,99 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TopBar from '../../components/TopBar.astro';
+import SectionHeader from '../../components/SectionHeader.astro';
+import TrackRow from '../../components/TrackRow.astro';
+import VinylArt from '../../components/VinylArt.astro';
+import { api } from '../../lib/api';
+import { MusicApiError } from '@music/api-client';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/404');
+
+let result: Awaited<ReturnType<typeof api.album>> | null = null;
+try {
+  result = await api.album(id);
+} catch (err) {
+  if (err instanceof MusicApiError) {
+    return Astro.redirect('/404');
+  }
+  throw err;
+}
+
+const { album, tracks } = result;
+const playableCount = tracks.filter((t) => t.previewUrl).length;
+---
+
+<Layout title={album.title}>
+  <TopBar eyebrow="Album" title={album.title} />
+
+  <section class="album-hero">
+    <VinylArt src={album.coverUrl || '/logo-mark.svg'} alt={`${album.title} artwork`} size={150} ring={false} />
+    <div>
+      <p class="album-hero__artist">{album.artistName}</p>
+      <p class="album-hero__meta">
+        {album.genre}
+        {album.genre && ' · '}
+        {tracks.length} track{tracks.length === 1 ? '' : 's'}
+        {playableCount > 0 && ` · ${playableCount} playable`}
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <SectionHeader title="Tracklist" />
+    {
+      tracks.length > 0 ? (
+        <div class="track-list">
+          {tracks.map((t, i) => (
+            <TrackRow
+              index={i + 1}
+              title={t.title}
+              artist={t.artistName}
+              artistId={t.artistId}
+              genre={t.genre}
+              album={t.albumTitle}
+              artwork={t.coverUrl}
+              trackId={t.id}
+              previewUrl={t.previewUrl}
+              durationMs={t.durationMs}
+            />
+          ))}
+        </div>
+      ) : (
+        <p class="empty-state">No tracks found for this album.</p>
+      )
+    }
+  </section>
+</Layout>
+
+<style>
+  .album-hero {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-top: 8px;
+  }
+
+  .album-hero__artist {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+
+  .album-hero__meta {
+    margin-top: 8px;
+    color: var(--ash);
+    font-size: 0.92rem;
+  }
+
+  .track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+</style>

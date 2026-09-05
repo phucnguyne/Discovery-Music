@@ -13,6 +13,10 @@ export const artistIdSchema = z.object({
   id: z.string().trim().regex(/^\d+$/, 'artist id must be numeric'),
 });
 
+export const albumIdSchema = z.object({
+  id: z.string().trim().regex(/^\d+$/, 'album id must be numeric'),
+});
+
 export const paginationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional().default(20),
 });
@@ -75,4 +79,5 @@ export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
 export type SearchQuery = z.infer<typeof searchQuerySchema>;
 export type GenreSlugParam = z.infer<typeof genreSlugSchema>;
 export type ArtistIdParam = z.infer<typeof artistIdSchema>;
+export type AlbumIdParam = z.infer<typeof albumIdSchema>;
 export type Pagination = z.infer<typeof paginationSchema>;
