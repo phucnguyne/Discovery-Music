@@ -12,6 +12,7 @@ import {
   createAccessToken,
   hashToken,
 } from './auth.js';
+import { env } from './env.js';
 
 /** Resolves the signed-in user's id from the request's cookies. 
  * First checks the short-lived access token. If missing or expired, 
@@ -36,7 +37,7 @@ export async function getSessionUserId(c: Context): Promise<string | null> {
 
   // Transparently refresh the access token
   const newAccessToken = await createAccessToken(rt.userId);
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = env.nodeEnv === 'production';
   setCookie(c, ACCESS_TOKEN_COOKIE, newAccessToken, {
     httpOnly: true,
     secure: isProd,

@@ -11,6 +11,7 @@ import { promisify } from 'node:util';
 import { sign, verify } from 'hono/jwt';
 import type { User } from '@music/types';
 import type { users } from '../db/schema.js';
+import { env } from './env.js';
 
 const scrypt = promisify(scryptCallback);
 
@@ -40,7 +41,7 @@ export const REFRESH_TOKEN_COOKIE = 'refresh_token';
 export const ACCESS_TOKEN_TTL_MS = 1000 * 60 * 15; // 15 minutes
 export const REFRESH_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-do-not-use-in-prod';
+const JWT_SECRET = env.jwtSecret;
 
 export async function createAccessToken(userId: string): Promise<string> {
   const payload = {

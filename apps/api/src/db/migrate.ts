@@ -5,13 +5,14 @@
 // at. Safe to run repeatedly; Drizzle tracks what's already applied.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { env } from '../lib/env.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsFolder = path.join(__dirname, '..', '..', 'drizzle');
 
 async function main() {
   const { db } = await import('./client.js');
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = env.databaseUrl;
 
   if (databaseUrl) {
     const { migrate } = await import('drizzle-orm/node-postgres/migrator');

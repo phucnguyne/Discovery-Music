@@ -2,7 +2,7 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { API_PORT, WEB_ORIGIN } from '@music/config';
+import { env } from './lib/env.js';
 import { catalog } from './routes/catalog.js';
 import { auth } from './routes/auth.js';
 import { me } from './routes/me.js';
@@ -12,7 +12,7 @@ const app = new Hono();
 app.use(
   '*',
   cors({
-    origin: WEB_ORIGIN,
+    origin: env.webOrigin,
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   }),
@@ -32,7 +32,7 @@ app.onError((err, c) => {
   return c.json({ ok: false, error: 'internal server error' }, 500);
 });
 
-serve({ fetch: app.fetch, port: API_PORT, hostname: '0.0.0.0' }, (info) => {
+serve({ fetch: app.fetch, port: env.apiPort, hostname: '0.0.0.0' }, (info) => {
   // eslint-disable-next-line no-console
   console.log(`@music/api listening on http://0.0.0.0:${info.port}`);
 });

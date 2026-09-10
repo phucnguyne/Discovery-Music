@@ -20,6 +20,7 @@ import {
 } from '../lib/auth.js';
 import { withinRateLimit } from '../lib/rate-limit.js';
 import { getSessionUserId } from '../lib/session.js';
+import { env } from '../lib/env.js';
 
 export const auth = new Hono();
 
@@ -40,7 +41,7 @@ async function startSession(c: Context, userId: string) {
     expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
   });
   
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = env.nodeEnv === 'production';
   const sameSite = isProd ? 'None' as const : 'Lax' as const;
   
   setCookie(c, REFRESH_TOKEN_COOKIE, token, {
@@ -139,7 +140,7 @@ auth.post('/refresh', async (c) => {
   }
 
   const accessToken = await createAccessToken(rt.userId);
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = env.nodeEnv === 'production';
   
   setCookie(c, ACCESS_TOKEN_COOKIE, accessToken, {
     httpOnly: true,

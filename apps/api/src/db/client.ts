@@ -18,11 +18,12 @@ import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import { Pool } from 'pg';
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import * as schema from './schema.js';
+import { env } from '../lib/env.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PGLITE_DATA_DIR = path.join(__dirname, '..', '..', 'data', 'pglite');
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = env.databaseUrl;
 
 if (!databaseUrl) {
   // PGlite's own directory creation is non-recursive and throws ENOENT if
