@@ -31,6 +31,19 @@ function err(error: string): ApiResult<never> {
   return { ok: false, error };
 }
 
+/** Shared cookie options so setCookie and deleteCookie always match.
+ *  Browser ignores a Set-Cookie deletion if the attributes (secure,
+ *  sameSite, path) don't match the original cookie exactly. */
+function cookieOptions() {
+  const isProd = env.nodeEnv === 'production';
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'None' as const : 'Lax' as const,
+    path: '/',
+  };
+}
+
 async function startSession(c: Context, userId: string) {
   const { token, tokenHash } = createRefreshToken();
   const accessToken = await createAccessToken(userId);
@@ -41,22 +54,15 @@ async function startSession(c: Context, userId: string) {
     expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
   });
   
-  const isProd = env.nodeEnv === 'production';
-  const sameSite = isProd ? 'None' as const : 'Lax' as const;
+  const opts = cookieOptions();
   
   setCookie(c, REFRESH_TOKEN_COOKIE, token, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite,
-    path: '/',
+    ...opts,
     maxAge: REFRESH_TOKEN_TTL_MS / 1000,
   });
   
   setCookie(c, ACCESS_TOKEN_COOKIE, accessToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite,
-    path: '/',
+    ...opts,
     maxAge: ACCESS_TOKEN_TTL_MS / 1000,
   });
 }
@@ -122,8 +128,9 @@ auth.post('/logout', async (c) => {
   if (token) {
     await db.delete(refreshTokens).where(eq(refreshTokens.tokenHash, hashToken(token)));
   }
-  deleteCookie(c, REFRESH_TOKEN_COOKIE, { path: '/' });
-  deleteCookie(c, ACCESS_TOKEN_COOKIE, { path: '/' });
+  const opts = cookieOptions();
+  deleteCookie(c, REFRESH_TOKEN_COOKIE, opts);
+  deleteCookie(c, ACCESS_TOKEN_COOKIE, opts);
   return c.json(ok(null));
 });
 
@@ -134,19 +141,16 @@ auth.post('/refresh', async (c) => {
 
   const rt = await db.query.refreshTokens.findFirst({ where: eq(refreshTokens.tokenHash, hashToken(token)) });
   if (!rt || rt.expiresAt.getTime() < Date.now()) {
-    deleteCookie(c, REFRESH_TOKEN_COOKIE, { path: '/' });
-    deleteCookie(c, ACCESS_TOKEN_COOKIE, { path: '/' });
+    const opts = cookieOptions();
+    deleteCookie(c, REFRESH_TOKEN_COOKIE, opts);
+    deleteCookie(c, ACCESS_TOKEN_COOKIE, opts);
     return c.json(err('session expired'), 401);
   }
 
   const accessToken = await createAccessToken(rt.userId);
-  const isProd = env.nodeEnv === 'production';
   
   setCookie(c, ACCESS_TOKEN_COOKIE, accessToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'None' : ('Lax' as const),
-    path: '/',
+    ...cookieOptions(),
     maxAge: ACCESS_TOKEN_TTL_MS / 1000,
   });
 
