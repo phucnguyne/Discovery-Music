@@ -46,9 +46,44 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const recordListenSchema = z.object({
   artistId: z.string().trim().min(1, 'artistId is required').max(64),
   genre: z.string().trim().min(1).max(60).optional(),
+  // Everything below is optional so recording a listen never fails just
+  // because a chart-sourced track (see itunes-provider's chart mapping)
+  // is missing some of it — those plays still count for recommendations,
+  // they just won't show up in "Recently played" (see schema.ts's comment
+  // on listening_events for why).
+  trackId: z.string().trim().min(1).max(64).optional(),
+  title: z.string().trim().min(1).max(300).optional(),
+  artistName: z.string().trim().min(1).max(200).optional(),
+  albumTitle: z.string().trim().max(300).optional(),
+  coverUrl: z.string().trim().max(2000).optional(),
+  previewUrl: z.string().trim().max(2000).optional(),
+  durationMs: z.number().int().positive().optional(),
 });
 
 export type RecordListenInput = z.infer<typeof recordListenSchema>;
+
+// Shared by POST /me/favorites and POST /me/playlists/:id/tracks — both
+// just snapshot a Track (see schema.ts's comment on why there's no
+// permanent tracks table to reference instead).
+export const trackSnapshotSchema = z.object({
+  trackId: z.string().trim().min(1, 'trackId is required').max(64),
+  title: z.string().trim().min(1, 'title is required').max(300),
+  artistId: z.string().trim().min(1, 'artistId is required').max(64),
+  artistName: z.string().trim().min(1, 'artistName is required').max(200),
+  albumTitle: z.string().trim().max(300).optional(),
+  coverUrl: z.string().trim().max(2000).optional(),
+  previewUrl: z.string().trim().max(2000).optional(),
+  durationMs: z.number().int().positive().optional(),
+  genre: z.string().trim().max(60).optional(),
+});
+
+export type TrackSnapshotInput = z.infer<typeof trackSnapshotSchema>;
+
+export const createPlaylistSchema = z.object({
+  name: z.string().trim().min(1, 'name is required').max(100),
+});
+
+export type CreatePlaylistInput = z.infer<typeof createPlaylistSchema>;
 
 // PATCH /me — either field alone is fine, but changing the password
 // requires proving you know the current one first (same reasoning most

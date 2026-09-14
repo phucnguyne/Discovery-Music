@@ -32,7 +32,20 @@ app.onError((err, c) => {
   return c.json({ ok: false, error: 'internal server error' }, 500);
 });
 
-serve({ fetch: app.fetch, port: env.apiPort, hostname: '0.0.0.0' }, (info) => {
+const server = serve({ fetch: app.fetch, port: env.apiPort, hostname: '0.0.0.0' }, (info) => {
   // eslint-disable-next-line no-console
   console.log(`@music/api listening on http://0.0.0.0:${info.port}`);
+});
+
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    // eslint-disable-next-line no-console
+    console.error(
+      `\n❌ Port ${env.apiPort} is already in use.\n` +
+      `   Kill the other process or set a different API_PORT in .env\n` +
+      `   Tip: npx kill-port ${env.apiPort}\n`,
+    );
+    process.exit(1);
+  }
+  throw err;
 });

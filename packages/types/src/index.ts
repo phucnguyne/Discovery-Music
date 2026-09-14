@@ -63,6 +63,34 @@ export interface ListeningEvent {
   playedAt: string; // ISO date
 }
 
+/** A Track as it appears in "Recently played" — same fields, plus when. */
+export interface RecentlyPlayedTrack extends Track {
+  playedAt: string; // ISO date
+}
+
+/** A Track as it appears in "Favorite songs". */
+export interface FavoriteTrack extends Track {
+  favoritedAt: string; // ISO date
+}
+
+/** A playlist's own metadata — not its tracks, see PlaylistDetail for those. */
+export interface PlaylistSummary {
+  id: string;
+  name: string;
+  createdAt: string; // ISO date
+  trackCount: number;
+}
+
+/** A Track as it appears inside a playlist. */
+export interface PlaylistTrackItem extends Track {
+  addedAt: string; // ISO date
+}
+
+export interface PlaylistDetail {
+  playlist: PlaylistSummary;
+  tracks: PlaylistTrackItem[];
+}
+
 export interface SearchResults {
   tracks: Track[];
   albums: Album[];

@@ -3,7 +3,20 @@
 // One typed surface over apps/api. Web calls this from Astro frontmatter
 // (server-side) and from the React SearchBar island (browser-side); a
 // future Expo app would import this exact same package.
-import type { ApiResult, Album, Artist, ArtistProfile, ListeningEvent, SearchResults, Track, User } from '@music/types';
+import type {
+  ApiResult,
+  Album,
+  Artist,
+  ArtistProfile,
+  ListeningEvent,
+  RecentlyPlayedTrack,
+  FavoriteTrack,
+  PlaylistSummary,
+  PlaylistDetail,
+  SearchResults,
+  Track,
+  User,
+} from '@music/types';
 import { API_BASE_URL } from '@music/config';
 
 export interface MusicApiClientOptions {
@@ -85,10 +98,26 @@ export function createMusicApiClient(options: MusicApiClientOptions = {}) {
     /** Fire-and-forget: called from the player the moment a track actually
      * starts. Never throws — not signed in, or @music/api being briefly
      * unreachable, is never worth interrupting playback over; the only
-     * cost is that this one play doesn't shape future recommendations. */
-    recordListen: async (input: { artistId: string; genre?: string }): Promise<void> => {
+     * cost is that this one play doesn't shape future recommendations and
+     * won't show up in "Recently played". Accepts a full Track (not just
+     * artistId/genre) so it can double as the "Recently played" source —
+     * see apps/api's listening_events table. */
+    recordListen: async (track: Track): Promise<void> => {
       try {
-        await request<null>('/me/listening-events', { method: 'POST', body: JSON.stringify(input) });
+        await request<null>('/me/listening-events', {
+          method: 'POST',
+          body: JSON.stringify({
+            artistId: track.artistId,
+            genre: track.genre,
+            trackId: track.id,
+            title: track.title,
+            artistName: track.artistName,
+            albumTitle: track.albumTitle,
+            coverUrl: track.coverUrl,
+            previewUrl: track.previewUrl,
+            durationMs: track.durationMs,
+          }),
+        });
       } catch {
         // best-effort — see doc comment above
       }
@@ -108,9 +137,93 @@ export function createMusicApiClient(options: MusicApiClientOptions = {}) {
         return [];
       }
     },
+
+    /** Never throws — an empty list reads the same as "you haven't played
+     * anything yet" whether that's true or the API hiccuped. */
+    recentlyPlayed: async (cookieHeader?: string | null): Promise<RecentlyPlayedTrack[]> => {
+      try {
+        return await request<RecentlyPlayedTrack[]>(
+          '/me/recently-played?limit=30',
+          cookieHeader ? { headers: { Cookie: cookieHeader } } : undefined,
+        );
+      } catch {
+        return [];
+      }
+    },
+
+    favorites: (cookieHeader?: string | null) =>
+      request<FavoriteTrack[]>('/me/favorites', cookieHeader ? { headers: { Cookie: cookieHeader } } : undefined),
+    /** Never throws — an unreachable API or logged-out state both just
+     * mean "nothing shows as favorited yet", not an error worth surfacing
+     * for what's a purely cosmetic heart-icon check. */
+    checkFavorites: async (trackIds: string[]): Promise<string[]> => {
+      if (trackIds.length === 0) return [];
+      try {
+        return await request<string[]>('/me/favorites/check', { method: 'POST', body: JSON.stringify({ trackIds }) });
+      } catch {
+        return [];
+      }
+    },
+    addFavorite: (track: Track) =>
+      request<null>('/me/favorites', {
+        method: 'POST',
+        body: JSON.stringify({
+          trackId: track.id,
+          title: track.title,
+          artistId: track.artistId,
+          artistName: track.artistName,
+          albumTitle: track.albumTitle,
+          coverUrl: track.coverUrl,
+          previewUrl: track.previewUrl,
+          durationMs: track.durationMs,
+          genre: track.genre,
+        }),
+      }),
+    removeFavorite: (trackId: string) => request<null>(`/me/favorites/${encodeURIComponent(trackId)}`, { method: 'DELETE' }),
+
+    playlists: (cookieHeader?: string | null) =>
+      request<PlaylistSummary[]>('/me/playlists', cookieHeader ? { headers: { Cookie: cookieHeader } } : undefined),
+    createPlaylist: (name: string) =>
+      request<PlaylistSummary>('/me/playlists', { method: 'POST', body: JSON.stringify({ name }) }),
+    deletePlaylist: (playlistId: string) => request<null>(`/me/playlists/${encodeURIComponent(playlistId)}`, { method: 'DELETE' }),
+    playlist: (playlistId: string, cookieHeader?: string | null) =>
+      request<PlaylistDetail>(
+        `/me/playlists/${encodeURIComponent(playlistId)}`,
+        cookieHeader ? { headers: { Cookie: cookieHeader } } : undefined,
+      ),
+    addToPlaylist: (playlistId: string, track: Track) =>
+      request<null>(`/me/playlists/${encodeURIComponent(playlistId)}/tracks`, {
+        method: 'POST',
+        body: JSON.stringify({
+          trackId: track.id,
+          title: track.title,
+          artistId: track.artistId,
+          artistName: track.artistName,
+          albumTitle: track.albumTitle,
+          coverUrl: track.coverUrl,
+          previewUrl: track.previewUrl,
+          durationMs: track.durationMs,
+          genre: track.genre,
+        }),
+      }),
+    removeFromPlaylist: (playlistId: string, trackId: string) =>
+      request<null>(`/me/playlists/${encodeURIComponent(playlistId)}/tracks/${encodeURIComponent(trackId)}`, {
+        method: 'DELETE',
+      }),
   };
 }
 
 export type MusicApiClient = ReturnType<typeof createMusicApiClient>;
-export type { Track, Album, Artist, SearchResults, ArtistProfile, User, ListeningEvent };
-
+export type {
+  Track,
+  Album,
+  Artist,
+  SearchResults,
+  ArtistProfile,
+  User,
+  ListeningEvent,
+  RecentlyPlayedTrack,
+  FavoriteTrack,
+  PlaylistSummary,
+  PlaylistDetail,
+};
