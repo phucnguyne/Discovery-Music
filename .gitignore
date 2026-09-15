@@ -6,6 +6,7 @@ dist/
 .env.local
 .DS_Store
 
-# Embedded PGlite database files (local dev only — see apps/api/src/db/client.ts).
-# Migrations in apps/api/drizzle/ ARE committed; this is the runtime data, not schema.
+
 apps/api/data/
+
+apps/api/drizzle/

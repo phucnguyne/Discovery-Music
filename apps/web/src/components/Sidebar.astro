@@ -40,15 +40,27 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     </ul>
 
     <p class="nav__label">My music</p>
-    <ul class="nav__list nav__list--soon" aria-disabled="true">
-      <li><span>Recently played <em class="soon-tag">Soon</em></span></li>
-      <li><span>Favorite songs <em class="soon-tag">Soon</em></span></li>
-      <li><span>Playlists <em class="soon-tag">Soon</em></span></li>
+    <ul class="nav__list">
+      <li>
+        <a href="/recently-played" class:list={{ 'is-active': isActive('/recently-played') }}>
+          <span>Recently played</span>
+        </a>
+      </li>
+      <li>
+        <a href="/favorites" class:list={{ 'is-active': isActive('/favorites') }}>
+          <span>Favorite songs</span>
+        </a>
+      </li>
+      <li>
+        <a href="/playlists" class:list={{ 'is-active': isActive('/playlists') }}>
+          <span>Playlists</span>
+        </a>
+      </li>
     </ul>
   </nav>
 
   <div class="sidebar__foot">
-    <p>Catalog data via the iTunes Search API. 30-second previews only. Accounts and saved libraries are coming later.</p>
+    <p>Catalog data via the iTunes Search API. 30-second previews only.</p>
   </div>
 </aside>
 
@@ -140,33 +152,6 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
 
   .nav__list--genres a {
     font-size: 0.86rem;
-  }
-
-  .nav__list--soon {
-    cursor: default;
-  }
-
-  .nav__list--soon li span {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 9px 8px;
-    font-size: 0.86rem;
-    color: var(--sb-text-dim);
-  }
-
-  .soon-tag {
-    font-style: normal;
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--sb-text-dim);
-    background: var(--sb-bg-raised);
-    border: 1px solid var(--sb-line);
-    border-radius: 999px;
-    padding: 2px 7px;
   }
 
   .sidebar__foot {

@@ -1,0 +1,15 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TopBar from '../../components/TopBar.astro';
+import PlaylistDetailView from '../../components/react/PlaylistDetailView';
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/playlists');
+---
+
+<Layout title="Playlist">
+  <TopBar eyebrow="Playlist" title="" />
+  <section class="section">
+    <PlaylistDetailView client:load playlistId={id} />
+  </section>
+</Layout>

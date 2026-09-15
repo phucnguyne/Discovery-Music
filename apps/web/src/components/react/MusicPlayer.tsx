@@ -105,7 +105,17 @@ export default function MusicPlayer() {
         // auto-advance on 'ended', so recording happens exactly once per
         // real play, not once per UI element that could trigger one.
         if (track.artistId) {
-          void api.recordListen({ artistId: track.artistId, genre: track.genre });
+          void api.recordListen({
+            id: track.id,
+            title: track.title,
+            artistId: track.artistId,
+            artistName: track.artist,
+            albumTitle: track.album,
+            coverUrl: track.artwork,
+            previewUrl: track.previewUrl,
+            durationMs: track.durationMs,
+            genre: track.genre,
+          });
         }
       })
       .catch(() => setError('Playback was blocked — tap play again.'));

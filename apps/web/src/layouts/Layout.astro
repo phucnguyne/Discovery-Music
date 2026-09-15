@@ -3,6 +3,7 @@ import { ClientRouter } from 'astro:transitions';
 import Sidebar from '../components/Sidebar.astro';
 import MusicPlayer from '../components/react/MusicPlayer';
 import NowPlayingPanel from '../components/react/NowPlayingPanel';
+import AddToPlaylistMenu from '../components/react/Addtoplaylistmenu';
 import '../styles/global.css';
 
 interface Props {
@@ -40,8 +41,11 @@ const { title, description = 'Discover songs, albums and artists from the iTunes
       <NowPlayingPanel client:load transition:persist />
     </div>
     <MusicPlayer client:load transition:persist />
+    <AddToPlaylistMenu client:load transition:persist />
     <script>
       import '../lib/playing-indicator.client';
+      import '../lib/favorite-button.client';
+      import '../lib/add-to-playlist-button.client';
     </script>
   </body>
 </html>

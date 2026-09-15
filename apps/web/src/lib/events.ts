@@ -33,3 +33,26 @@ export function dispatchPlayTrack(detail: PlayTrackDetail) {
   window.dispatchEvent(new CustomEvent<PlayTrackDetail>(PLAY_TRACK_EVENT, { detail }));
 }
 
+// Same "islands talk through window" pattern as above, but for the "+"
+// button on a track: it doesn't know how to render a playlist picker
+// itself (that needs to fetch the user's playlists, so it needs real
+// state) — it just announces "someone wants to add this track somewhere",
+// and the single global <AddToPlaylistMenu/> island (mounted once in
+// Layout.astro) opens and does the rest.
+export const ADD_TO_PLAYLIST_EVENT = 'musicdisco:add-to-playlist-request';
+
+export interface AddToPlaylistDetail {
+  id: string;
+  title: string;
+  artist: string;
+  artistId: string;
+  album?: string;
+  artwork: string;
+  previewUrl?: string;
+  durationMs?: number;
+  genre?: string;
+}
+
+export function dispatchAddToPlaylistRequest(detail: AddToPlaylistDetail) {
+  window.dispatchEvent(new CustomEvent<AddToPlaylistDetail>(ADD_TO_PLAYLIST_EVENT, { detail }));
+}

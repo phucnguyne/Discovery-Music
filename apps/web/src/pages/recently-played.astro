@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TopBar from '../components/TopBar.astro';
+import RecentlyPlayedList from '../components/react/RecentlyPlayedList';
+---
+
+<Layout title="Recently played">
+  <TopBar eyebrow="My music" title="Recently played" />
+  <section class="section">
+    <RecentlyPlayedList client:load />
+  </section>
+</Layout>

@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TopBar from '../components/TopBar.astro';
+import FavoritesList from '../components/react/FavoritesList';
+---
+
+<Layout title="Favorite songs">
+  <TopBar eyebrow="My music" title="Favorite songs" />
+  <section class="section">
+    <FavoritesList client:load />
+  </section>
+</Layout>
