@@ -103,6 +103,14 @@ export interface ArtistProfile {
   albums: Album[];
 }
 
+/** Playback state broadcast to other devices via SSE sync. */
+export interface PlaybackSyncEvent {
+  trackId: string;
+  positionMs: number;
+  isPlaying: boolean;
+  updatedAt: string; // ISO date
+}
+
 /** Generic wrapper every API route returns, so clients can branch on `ok`
  * without throwing on expected "upstream had nothing" cases. */
 export type ApiResult<T> =
