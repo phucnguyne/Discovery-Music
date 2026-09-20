@@ -1,5 +1,5 @@
 // apps/api/src/routes/catalog.ts
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import type { ApiResult, ArtistProfile, SearchResults } from '@music/types';
 import { searchQuerySchema, genreSlugSchema, artistIdSchema, albumIdSchema } from '@music/validation';
 import { CACHE_TTL_MS } from '@music/config';
@@ -15,6 +15,15 @@ function ok<T>(data: T): ApiResult<T> {
 
 function fail(error: string): ApiResult<never> {
   return { ok: false, error };
+}
+
+/** Mirrors the in-process cache's TTL as an HTTP Cache-Control header, so
+ * a repeat request within that window can be served by the browser (or
+ * any CDN in front) without a round trip at all — not just skip iTunes,
+ * skip the network entirely. `public` is safe here: none of these catalog
+ * routes read cookies or vary per-user. */
+function setCacheHeader(c: Context, ttlMs: number) {
+  c.header('Cache-Control', `public, max-age=${Math.floor(ttlMs / 1000)}`);
 }
 
 // GET /catalog/search?q=...
@@ -34,6 +43,7 @@ catalog.get('/search', async (c) => {
     return { tracks, albums, artists };
   });
 
+  setCacheHeader(c, CACHE_TTL_MS.search);
   return c.json(ok(results));
 });
 
@@ -43,6 +53,7 @@ catalog.get('/charts/trending', async (c) => {
   const tracks = await cached(`charts:trending:${country}`, CACHE_TTL_MS.charts, () =>
     itunes.fetchTopSongs(country, 10),
   );
+  setCacheHeader(c, CACHE_TTL_MS.charts);
   return c.json(ok(tracks));
 });
 
@@ -52,6 +63,7 @@ catalog.get('/charts/new-releases', async (c) => {
   const albums = await cached(`charts:new-releases:${country}`, CACHE_TTL_MS.charts, () =>
     itunes.fetchTopAlbums(country, 10),
   );
+  setCacheHeader(c, CACHE_TTL_MS.charts);
   return c.json(ok(albums));
 });
 
@@ -71,6 +83,7 @@ catalog.get('/genres/:slug', async (c) => {
     return { genre: { slug: genre.slug, label: genre.label }, tracks, albums };
   });
 
+  setCacheHeader(c, CACHE_TTL_MS.charts);
   return c.json(ok(result));
 });
 
@@ -91,6 +104,7 @@ catalog.get('/artists/:id', async (c) => {
   });
 
   if (!profile) return c.json(fail('artist not found'), 404);
+  setCacheHeader(c, CACHE_TTL_MS.artist);
   return c.json(ok(profile));
 });
 
@@ -106,5 +120,6 @@ catalog.get('/albums/:id', async (c) => {
   const result = await cached(`album:${id}`, CACHE_TTL_MS.artist, () => itunes.lookupAlbum(id, 25));
 
   if (!result) return c.json(fail('album not found'), 404);
+  setCacheHeader(c, CACHE_TTL_MS.artist);
   return c.json(ok(result));
 });

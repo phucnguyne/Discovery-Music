@@ -20,7 +20,6 @@ import {
 } from '../lib/auth.js';
 import { withinRateLimit } from '../lib/rate-limit.js';
 import { getSessionUserId } from '../lib/session.js';
-import { env } from '../lib/env.js';
 
 export const auth = new Hono();
 
@@ -31,17 +30,15 @@ function err(error: string): ApiResult<never> {
   return { ok: false, error };
 }
 
-/** Shared cookie options so setCookie and deleteCookie always match.
- *  Browser ignores a Set-Cookie deletion if the attributes (secure,
- *  sameSite, path) don't match the original cookie exactly. */
-function cookieOptions() {
-  const isProd = env.nodeEnv === 'production';
-  return {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'None' as const : 'Lax' as const,
-    path: '/',
-  };
+/** Signup can't be rate-limited by email the way login is below — an
+ * attacker spamming accounts just uses a fresh email every time, so
+ * per-email limiting never accumulates. IP is the key that actually
+ * catches repeated signups from the same source. Render (and most PaaS)
+ * sits behind a proxy, so the real client address arrives via
+ * X-Forwarded-For, not the raw socket — falls back to a shared bucket
+ * locally, where that header doesn't exist. */
+function clientIp(c: Context): string {
+  return c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
 }
 
 async function startSession(c: Context, userId: string) {
@@ -54,21 +51,36 @@ async function startSession(c: Context, userId: string) {
     expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
   });
   
-  const opts = cookieOptions();
+  const isProd = process.env.NODE_ENV === 'production';
+  const sameSite = isProd ? 'None' as const : 'Lax' as const;
   
   setCookie(c, REFRESH_TOKEN_COOKIE, token, {
-    ...opts,
+    httpOnly: true,
+    secure: isProd,
+    sameSite,
+    path: '/',
     maxAge: REFRESH_TOKEN_TTL_MS / 1000,
   });
   
   setCookie(c, ACCESS_TOKEN_COOKIE, accessToken, {
-    ...opts,
+    httpOnly: true,
+    secure: isProd,
+    sameSite,
+    path: '/',
     maxAge: ACCESS_TOKEN_TTL_MS / 1000,
   });
 }
 
 // POST /auth/signup
 auth.post('/signup', async (c) => {
+  // 10 signups / hour per source IP — generous for a real person setting
+  // up a couple of accounts, tight enough to blunt a scripted spam run
+  // (each one forces a scrypt hash server-side, so this is as much about
+  // protecting CPU as it is about junk accounts).
+  if (!withinRateLimit(`signup:${clientIp(c)}`, 10, 60 * 60 * 1000)) {
+    return c.json(err('too many accounts created recently, try again later'), 429);
+  }
+
   const body = await c.req.json().catch(() => null);
   const parsed = signupSchema.safeParse(body);
   if (!parsed.success) {
@@ -128,9 +140,8 @@ auth.post('/logout', async (c) => {
   if (token) {
     await db.delete(refreshTokens).where(eq(refreshTokens.tokenHash, hashToken(token)));
   }
-  const opts = cookieOptions();
-  deleteCookie(c, REFRESH_TOKEN_COOKIE, opts);
-  deleteCookie(c, ACCESS_TOKEN_COOKIE, opts);
+  deleteCookie(c, REFRESH_TOKEN_COOKIE, { path: '/' });
+  deleteCookie(c, ACCESS_TOKEN_COOKIE, { path: '/' });
   return c.json(ok(null));
 });
 
@@ -141,16 +152,19 @@ auth.post('/refresh', async (c) => {
 
   const rt = await db.query.refreshTokens.findFirst({ where: eq(refreshTokens.tokenHash, hashToken(token)) });
   if (!rt || rt.expiresAt.getTime() < Date.now()) {
-    const opts = cookieOptions();
-    deleteCookie(c, REFRESH_TOKEN_COOKIE, opts);
-    deleteCookie(c, ACCESS_TOKEN_COOKIE, opts);
+    deleteCookie(c, REFRESH_TOKEN_COOKIE, { path: '/' });
+    deleteCookie(c, ACCESS_TOKEN_COOKIE, { path: '/' });
     return c.json(err('session expired'), 401);
   }
 
   const accessToken = await createAccessToken(rt.userId);
+  const isProd = process.env.NODE_ENV === 'production';
   
   setCookie(c, ACCESS_TOKEN_COOKIE, accessToken, {
-    ...cookieOptions(),
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'None' : ('Lax' as const),
+    path: '/',
     maxAge: ACCESS_TOKEN_TTL_MS / 1000,
   });
 
