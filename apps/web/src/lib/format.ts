@@ -27,3 +27,16 @@ export function timeAgo(iso: string): string {
   const days = Math.round(hours / 24);
   return `${days}d ago`;
 }
+
+/** Downsizes an iTunes artwork URL for small fixed-size contexts (track
+ * row thumbnails, 44x44 CSS px) — apps/api's itunes-provider.ts always
+ * bakes in 600x600 (right call for AlbumCard, which renders fluid/larger),
+ * so a 44px thumbnail would otherwise pull the same ~40-80KB image as a
+ * full-size cover for no visual benefit. `size` should be requested at
+ * roughly 2x the CSS pixel size to stay sharp on retina displays. Safe
+ * no-op (returns the URL unchanged) if it doesn't match the expected
+ * iTunes `/{W}x{H}bb.` pattern. */
+export function thumbSrc(url: string, size = 100): string {
+  if (!url) return url;
+  return url.replace(/\/\d+x\d+bb\.(jpg|png)/, `/${size}x${size}bb.$1`);
+}

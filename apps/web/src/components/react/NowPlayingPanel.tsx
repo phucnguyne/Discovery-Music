@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { PLAY_TRACK_EVENT, type PlayTrackDetail } from '../../lib/events';
+import { thumbSrc } from '../../lib/format';
 
 export default function NowPlayingPanel() {
   const [current, setCurrent] = useState<PlayTrackDetail | null>(null);
@@ -43,7 +44,7 @@ export default function NowPlayingPanel() {
             <ul>
               {queue.slice(0, 6).map((t) => (
                 <li key={t.id}>
-                  <img src={t.artwork} alt="" />
+                  <img src={thumbSrc(t.artwork)} alt="" width={34} height={34} loading="lazy" />
                   <div className="np__queue-meta">
                     <span className="np__queue-title">{t.title}</span>
                     <span className="np__queue-artist">{t.artist}</span>

@@ -3,6 +3,7 @@ import { dispatchPlayTrack } from '../../lib/events';
 import { api } from '../../lib/api';
 import type { Track } from '@music/types';
 import { navigate } from 'astro:transitions/client';
+import { thumbSrc } from '../../lib/format';
 
 interface Props {
   /** Where the full results page lives; Enter navigates here with ?q= */
@@ -110,7 +111,7 @@ export default function SearchBar({ resultsPath = '/search', placeholder = 'Sear
           {results.map((r) => (
             <li key={r.id}>
               <button type="button" onClick={() => play(r)} disabled={!r.previewUrl}>
-                <img src={r.coverUrl} alt="" />
+                <img src={thumbSrc(r.coverUrl)} alt="" width={34} height={34} loading="lazy" />
                 <span className="searchbar__results-meta">
                   <span className="searchbar__results-title">{r.title}</span>
                   <span className="searchbar__results-artist">{r.artistName}</span>

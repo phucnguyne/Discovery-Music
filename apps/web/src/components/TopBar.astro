@@ -17,7 +17,7 @@ const { eyebrow, title } = Astro.props;
   <div class="topbar__search">
     <SearchBar client:load transition:persist />
   </div>
-  <AccountMenu client:load />
+  <AccountMenu client:idle />
 </header>
 
 <style>

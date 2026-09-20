@@ -1,5 +1,5 @@
 ---
-import { formatDuration } from '../lib/format';
+import { formatDuration, thumbSrc } from '../lib/format';
 
 interface Props {
   index?: number;
@@ -20,7 +20,7 @@ const playable = Boolean(previewUrl);
 
 <div class="track-row" data-vinyl data-track-id={trackId}>
   {typeof index === 'number' && <span class="track-row__index">{String(index).padStart(2, '0')}</span>}
-  <img class="track-row__art" src={artwork} alt="" loading="lazy" width="44" height="44" />
+  <img class="track-row__art" src={thumbSrc(artwork)} alt="" loading="lazy" width="44" height="44" />
   <div class="track-row__meta">
     <p class="track-row__title">{title}</p>
     <p class="track-row__artist">{artist}</p>

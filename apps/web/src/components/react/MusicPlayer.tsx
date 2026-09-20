@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PLAY_TRACK_EVENT, type PlayTrackDetail } from '../../lib/events';
 import { api } from '../../lib/api';
+import { thumbSrc } from '../../lib/format';
 
 const BAR_COUNT = 40;
 
@@ -225,7 +226,7 @@ export default function MusicPlayer() {
   return (
     <div className="player">
       <div className="player__track">
-        <img src={current.artwork} alt="" className="player__art" />
+        <img src={thumbSrc(current.artwork, 100)} alt="" className="player__art" width={52} height={52} loading="lazy" />
         <div className="player__meta">
           <p className="player__title">{current.title}</p>
           <p className="player__artist">{current.artist}</p>

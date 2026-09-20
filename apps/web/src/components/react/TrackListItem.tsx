@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../../lib/api';
 import { MusicApiError } from '@music/api-client';
 import { dispatchAddToPlaylistRequest } from '../../lib/events';
-import { formatDuration } from '../../lib/format';
+import { formatDuration, thumbSrc } from '../../lib/format';
 import type { Track } from '@music/types';
 
 interface Props {
@@ -62,7 +62,7 @@ export default function TrackListItem({
   return (
     <div className="tli" data-vinyl data-track-id={track.id}>
       {typeof index === 'number' && <span className="tli__index">{String(index).padStart(2, '0')}</span>}
-      <img className="tli__art" src={track.coverUrl} alt="" width={44} height={44} loading="lazy" />
+      <img className="tli__art" src={thumbSrc(track.coverUrl)} alt="" width={44} height={44} loading="lazy" />
       <div className="tli__meta">
         <p className="tli__title">{track.title}</p>
         <p className="tli__artist">{track.artistName}</p>

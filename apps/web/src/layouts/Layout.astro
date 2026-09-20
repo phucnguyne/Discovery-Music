@@ -38,10 +38,10 @@ const { title, description = 'Discover songs, albums and artists from the iTunes
           <slot />
         </main>
       </div>
-      <NowPlayingPanel client:load transition:persist />
+      <NowPlayingPanel client:idle transition:persist />
     </div>
     <MusicPlayer client:load transition:persist />
-    <AddToPlaylistMenu client:load transition:persist />
+    <AddToPlaylistMenu client:idle transition:persist />
     <script>
       import '../lib/playing-indicator.client';
       import '../lib/favorite-button.client';
