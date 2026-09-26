@@ -335,7 +335,11 @@ export default function MusicPlayer() {
         .player__volume input { accent-color: var(--amber); width: 90px; }
         @media (max-width: 900px) {
           .player { left: 0; grid-template-columns: 1fr; grid-auto-rows: auto; height: auto; padding: 12px 16px; gap: 10px; }
-          .player__volume { justify-self: stretch; }
+          /* iOS Safari ignores JS volume changes on <audio> entirely (a
+             platform policy, not a bug here) — a slider that visibly does
+             nothing is worse than no slider, and dropping this row also
+             keeps the mobile player from growing even taller. */
+          .player__volume { display: none; }
         }
       `}</style>
     </div>

@@ -153,6 +153,15 @@ p {
 }
 
 @media (max-width: 900px) {
+  :root {
+    /* Player collapses to 2 stacked rows on mobile (track info, then
+       transport+scrub — volume is hidden, see MusicPlayer.tsx) instead
+       of the desktop's single 92px-tall row. main-col's bottom padding
+       reads this same variable, so without this override the taller
+       mobile player would sit on top of a page's last bit of content
+       instead of leaving room for it. */
+    --player-h: 176px;
+  }
   .app-shell {
     grid-template-columns: 1fr;
   }
