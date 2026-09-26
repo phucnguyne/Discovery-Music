@@ -6,61 +6,77 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
 ---
 
 <aside class="sidebar">
-  <a class="brand" href="/">
-    <img class="brand__mark" src="/logo-mark.svg" alt="" width="30" height="30" />
-    <span class="brand__word">Discovery<em>Music</em></span>
-  </a>
+  <div class="sidebar__top">
+    <a class="brand" href="/">
+      <img class="brand__mark" src="/logo-mark.svg" alt="" width="30" height="30" />
+      <span class="brand__word">Discovery<em>Music</em></span>
+    </a>
+    <button
+      type="button"
+      class="sidebar__toggle"
+      id="sidebar-toggle"
+      aria-expanded="false"
+      aria-controls="sidebar-nav"
+      aria-label="Toggle menu"
+    >
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+        <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </button>
+  </div>
 
-  <nav class="nav" aria-label="Primary">
-    <p class="nav__label">Library</p>
-    <ul class="nav__list">
-      <li>
-        <a href="/" class:list={{ 'is-active': isActive('/') }}>
-          <span>Browse</span>
-        </a>
-      </li>
-      <li>
-        <a href="/search" class:list={{ 'is-active': isActive('/search') }}>
-          <span>Search</span>
-        </a>
-      </li>
-    </ul>
+  <div id="sidebar-nav" class="sidebar__collapsible" hidden>
+    <nav class="nav" aria-label="Primary">
+      <p class="nav__label">Library</p>
+      <ul class="nav__list">
+        <li>
+          <a href="/" class:list={{ 'is-active': isActive('/') }}>
+            <span>Browse</span>
+          </a>
+        </li>
+        <li>
+          <a href="/search" class:list={{ 'is-active': isActive('/search') }}>
+            <span>Search</span>
+          </a>
+        </li>
+      </ul>
 
-    <p class="nav__label">Genres</p>
-    <ul class="nav__list nav__list--genres">
-      {
-        GENRES.map((g) => (
-          <li>
-            <a href={`/genre/${g.slug}`} class:list={{ 'is-active': isActive(`/genre/${g.slug}`) }}>
-              <span>{g.label}</span>
-            </a>
-          </li>
-        ))
-      }
-    </ul>
+      <p class="nav__label">Genres</p>
+      <ul class="nav__list nav__list--genres">
+        {
+          GENRES.map((g) => (
+            <li>
+              <a href={`/genre/${g.slug}`} class:list={{ 'is-active': isActive(`/genre/${g.slug}`) }}>
+                <span>{g.label}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
 
-    <p class="nav__label">My music</p>
-    <ul class="nav__list">
-      <li>
-        <a href="/recently-played" class:list={{ 'is-active': isActive('/recently-played') }}>
-          <span>Recently played</span>
-        </a>
-      </li>
-      <li>
-        <a href="/favorites" class:list={{ 'is-active': isActive('/favorites') }}>
-          <span>Favorite songs</span>
-        </a>
-      </li>
-      <li>
-        <a href="/playlists" class:list={{ 'is-active': isActive('/playlists') }}>
-          <span>Playlists</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
+      <p class="nav__label">My music</p>
+      <ul class="nav__list">
+        <li>
+          <a href="/recently-played" class:list={{ 'is-active': isActive('/recently-played') }}>
+            <span>Recently played</span>
+          </a>
+        </li>
+        <li>
+          <a href="/favorites" class:list={{ 'is-active': isActive('/favorites') }}>
+            <span>Favorite songs</span>
+          </a>
+        </li>
+        <li>
+          <a href="/playlists" class:list={{ 'is-active': isActive('/playlists') }}>
+            <span>Playlists</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
 
-  <div class="sidebar__foot">
-    <p>Catalog data via the iTunes Search API. 30-second previews only.</p>
+    <div class="sidebar__foot">
+      <p>Catalog data via the iTunes Search API. 30-second previews only.</p>
+    </div>
   </div>
 </aside>
 
@@ -76,11 +92,30 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     top: 0;
   }
 
+  .sidebar__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 34px;
+  }
+
   .brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 34px;
+  }
+
+  .sidebar__toggle {
+    display: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-s);
+    align-items: center;
+    justify-content: center;
+    color: var(--sb-text);
+    border: 1px solid var(--sb-line);
+    flex: none;
   }
 
   .brand__mark {
@@ -172,6 +207,23 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     }
     .nav {
       overflow: visible;
+    }
+    .sidebar__toggle {
+      display: flex;
+    }
+    /* Collapsed by default via the `hidden` attribute (see Sidebar.astro's
+       markup) — the whole point on mobile is not dumping brand + every
+       nav link + all 10 genres + footer text above the fold on every
+       single page before any real content shows. sidebar-toggle.client.ts
+       removes `hidden` on click. */
+  }
+
+  /* Above 900px, always show the nav regardless of the `hidden` attribute
+     — that attribute only exists to drive the mobile collapse; desktop
+     never renders the toggle button that would set it in the first place. */
+  @media (min-width: 901px) {
+    .sidebar__collapsible[hidden] {
+      display: block;
     }
   }
 </style>
