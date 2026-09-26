@@ -148,9 +148,16 @@ export default function TrackListItem({
         .tli__duration { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ash-dim); white-space: nowrap; }
         .tli__icon {
           width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center;
-          color: var(--ash-dim); opacity: 0; transition: color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+          color: var(--ash-dim); transition: color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
         }
-        .tli:hover .tli__icon, .tli__icon:focus-visible { opacity: 1; }
+        /* Same reasoning as TrackRow.astro: opacity:0 with only a :hover
+           trigger leaves these permanently invisible on touch devices,
+           which have no hover state at all. Only fade-on-hover where
+           hover genuinely exists. */
+        @media (hover: hover) {
+          .tli__icon { opacity: 0; }
+          .tli:hover .tli__icon, .tli__icon:focus-visible { opacity: 1; }
+        }
         .tli__icon:hover { color: var(--paper); background: var(--ink-raised); }
         .tli__heart[aria-pressed='true'] { opacity: 1; color: #ef4a6b; }
         .tli__play {
@@ -164,6 +171,25 @@ export default function TrackListItem({
           color: var(--ash-dim); font-size: 1.05rem; line-height: 1; transition: color 0.15s ease, background 0.15s ease;
         }
         .tli__remove:hover { color: var(--paper); background: var(--ink-raised); }
+
+        /* Same math as TrackRow.astro: 8 fixed columns leave almost
+           nothing for the title on a phone. Drop index + duration,
+           shrink artwork. */
+        @media (max-width: 480px) {
+          .tli {
+            grid-template-columns: 36px 1fr 30px 30px 34px 26px;
+            gap: 8px;
+            padding: 8px 10px;
+          }
+          .tli__index,
+          .tli__duration {
+            display: none;
+          }
+          .tli__art {
+            width: 36px;
+            height: 36px;
+          }
+        }
       `}</style>
     </div>
   );

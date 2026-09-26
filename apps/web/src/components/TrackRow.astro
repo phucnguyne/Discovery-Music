@@ -120,6 +120,26 @@ const playable = Boolean(previewUrl);
     transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
 
+  /* 7 fixed-width columns leave almost nothing for the title on a phone
+     (measured: ~66px remaining at 360px wide) — drop the index and
+     duration columns, which are the least essential bits here, and
+     shrink the artwork a touch to give title/artist real breathing room. */
+  @media (max-width: 480px) {
+    .track-row {
+      grid-template-columns: 36px 1fr 30px 30px 34px;
+      gap: 8px;
+      padding: 8px 10px;
+    }
+    .track-row__index,
+    .track-row__duration {
+      display: none;
+    }
+    .track-row__art {
+      width: 36px;
+      height: 36px;
+    }
+  }
+
   .track-row:hover {
     background: var(--ink-soft);
     box-shadow: var(--shadow-edge);
@@ -184,13 +204,22 @@ const playable = Boolean(previewUrl);
     display: grid;
     place-items: center;
     color: var(--ash-dim);
-    opacity: 0;
     transition: color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
   }
 
-  .track-row:hover .track-row__icon-btn,
-  .track-row__icon-btn:focus-visible {
-    opacity: 1;
+  /* Hover-to-reveal only makes sense on devices that actually have a
+     hover state (mouse/trackpad) — on touch, opacity:0 with no :hover
+     trigger means these buttons are permanently invisible AND
+     undiscoverable, not just decluttered. Touch devices get them
+     visible all the time instead. */
+  @media (hover: hover) {
+    .track-row__icon-btn {
+      opacity: 0;
+    }
+    .track-row:hover .track-row__icon-btn,
+    .track-row__icon-btn:focus-visible {
+      opacity: 1;
+    }
   }
 
   .track-row__icon-btn:hover {
