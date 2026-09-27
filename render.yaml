@@ -18,6 +18,9 @@ services:
       # see README for exactly where to copy this from.
       - key: DATABASE_URL
         sync: false
+      # Required during API startup for signing session cookies/JWTs.
+      - key: JWT_SECRET
+        generateValue: true
       # apps/web's public URL, once you know it (see README) — needed for
       # CORS to accept the cookie-carrying requests apps/web sends.
       - key: WEB_ORIGIN
