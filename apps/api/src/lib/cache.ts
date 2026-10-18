@@ -11,6 +11,8 @@ interface Entry<T> {
 }
 
 const store = new Map<string, Entry<unknown>>();
+const MAX_ENTRIES = 1_000;
+let readsSinceCleanup = 0;
 
 /** Returns true when `v` looks like a meaningful result worth caching.
  *  Empty arrays, null, and undefined are treated as transient failures
@@ -31,12 +33,26 @@ function isCacheable(v: unknown): boolean {
 }
 
 export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
+  readsSinceCleanup += 1;
+  if (readsSinceCleanup >= 64) {
+    readsSinceCleanup = 0;
+    const now = Date.now();
+    for (const [cachedKey, entry] of store) {
+      if (entry.expiresAt <= now) store.delete(cachedKey);
+    }
+  }
+
   const hit = store.get(key);
   if (hit && hit.expiresAt > Date.now()) {
     return hit.value as T;
   }
+  if (hit) store.delete(key);
   const value = await fn();
   if (isCacheable(value)) {
+    if (store.size >= MAX_ENTRIES) {
+      const oldestKey = store.keys().next().value;
+      if (oldestKey !== undefined) store.delete(oldestKey);
+    }
     store.set(key, { value, expiresAt: Date.now() + ttlMs });
   }
   return value;

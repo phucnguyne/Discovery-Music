@@ -51,22 +51,35 @@ export function createMusicApiClient(options: MusicApiClientOptions = {}) {
           ...init?.headers,
         },
       });
-    } catch (err) {
-      throw new MusicApiError(`Could not reach @music/api at ${baseUrl}: ${(err as Error).message}`);
+    } catch {
+      throw new MusicApiError('Could not reach the music service');
     }
-    const body = (await res.json()) as ApiResult<T>;
+    let body: ApiResult<T>;
+    try {
+      body = (await res.json()) as ApiResult<T>;
+    } catch {
+      throw new MusicApiError('The music service returned an invalid response', res.status);
+    }
     if (!body.ok) throw new MusicApiError(body.error, res.status);
     return body.data;
   }
 
   return {
     search: (q: string) => request<SearchResults>(`/catalog/search?q=${encodeURIComponent(q)}`),
+    searchTracks: (q: string, offset: number) =>
+      request<{ tracks: Track[]; hasMore: boolean }>(
+        `/catalog/search/tracks?q=${encodeURIComponent(q)}&offset=${offset}`,
+      ),
     trending: () => request<Track[]>('/catalog/charts/trending'),
     newReleases: () => request<Album[]>('/catalog/charts/new-releases'),
     genre: (slug: string) => request<{ genre: { slug: string; label: string }; tracks: Track[]; albums: Album[] }>(
       `/catalog/genres/${encodeURIComponent(slug)}`,
     ),
     artist: (id: string) => request<ArtistProfile>(`/catalog/artists/${encodeURIComponent(id)}`),
+    artistTracks: (id: string, offset: number) =>
+      request<{ tracks: Track[]; hasMore: boolean }>(
+        `/catalog/artists/${encodeURIComponent(id)}/tracks?offset=${offset}`,
+      ),
     album: (id: string) => request<{ album: Album; tracks: Track[] }>(`/catalog/albums/${encodeURIComponent(id)}`),
 
     signup: (input: { email: string; password: string; displayName: string }) =>

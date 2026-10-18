@@ -18,7 +18,7 @@ import {
   ACCESS_TOKEN_TTL_MS,
   REFRESH_TOKEN_TTL_MS,
 } from '../lib/auth.js';
-import { withinRateLimit } from '../lib/rate-limit.js';
+import { withinRateLimit, clientIp } from '../lib/rate-limit.js';
 import { getSessionUserId } from '../lib/session.js';
 
 export const auth = new Hono();
@@ -28,17 +28,6 @@ function ok<T>(data: T): ApiResult<T> {
 }
 function err(error: string): ApiResult<never> {
   return { ok: false, error };
-}
-
-/** Signup can't be rate-limited by email the way login is below — an
- * attacker spamming accounts just uses a fresh email every time, so
- * per-email limiting never accumulates. IP is the key that actually
- * catches repeated signups from the same source. Render (and most PaaS)
- * sits behind a proxy, so the real client address arrives via
- * X-Forwarded-For, not the raw socket — falls back to a shared bucket
- * locally, where that header doesn't exist. */
-function clientIp(c: Context): string {
-  return c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
 }
 
 async function startSession(c: Context, userId: string) {
@@ -112,7 +101,9 @@ auth.post('/login', async (c) => {
   }
   const { email, password } = parsed.data;
 
-  if (!withinRateLimit(`login:${email}`, 8, 15 * 60 * 1000)) {
+  const ipAllowed = withinRateLimit(`login-ip:${clientIp(c)}`, 30, 15 * 60 * 1000);
+  const accountAllowed = withinRateLimit(`login-email:${email}`, 8, 15 * 60 * 1000);
+  if (!ipAllowed || !accountAllowed) {
     return c.json(err('too many attempts, try again later'), 429);
   }
 

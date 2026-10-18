@@ -175,6 +175,21 @@ export async function searchTracks(term: string, limit = 12): Promise<Track[]> {
   return (data?.results ?? []).filter((r) => r.wrapperType === 'track').map(toTrack);
 }
 
+export async function searchTracksPage(
+  term: string,
+  offset: number,
+  pageSize = 10,
+): Promise<{ tracks: Track[]; hasMore: boolean }> {
+  const limit = Math.min(offset + pageSize + 1, 200);
+  const url = `${SEARCH_URL}?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}`;
+  const data = await safeFetchJSON<{ results: RawTrack[] }>(url);
+  const allTracks = (data?.results ?? []).filter((r) => r.wrapperType === 'track').map(toTrack);
+  return {
+    tracks: allTracks.slice(offset, offset + pageSize),
+    hasMore: offset + pageSize < 200 && allTracks.length > offset + pageSize,
+  };
+}
+
 export async function searchAlbums(term: string, limit = 12): Promise<Album[]> {
   const url = `${SEARCH_URL}?term=${encodeURIComponent(term)}&media=music&entity=album&limit=${limit}`;
   const data = await safeFetchJSON<{ results: RawAlbum[] }>(url);
@@ -194,16 +209,25 @@ export async function lookupArtist(artistId: string): Promise<Artist | null> {
   return found ? toArtist(found) : null;
 }
 
-export async function lookupArtistAlbums(artistId: string, limit = 12): Promise<Album[]> {
+export async function lookupArtistAlbums(artistId: string, limit = 200): Promise<Album[]> {
   const url = `${LOOKUP_URL}?id=${artistId}&entity=album&limit=${limit}`;
   const data = await safeFetchJSON<{ results: (RawAlbum | RawArtist)[] }>(url);
   return (data?.results.filter((r) => r.wrapperType === 'collection') as RawAlbum[] | undefined ?? []).map(toAlbum);
 }
 
-export async function lookupArtistTopTracks(artistId: string, limit = 10): Promise<Track[]> {
+export async function lookupArtistTopTracks(
+  artistId: string,
+  offset = 0,
+  pageSize = 10,
+): Promise<{ tracks: Track[]; hasMore: boolean }> {
+  const limit = Math.min(offset + pageSize + 2, 200);
   const url = `${LOOKUP_URL}?id=${artistId}&entity=song&limit=${limit}&sort=recent`;
   const data = await safeFetchJSON<{ results: (RawTrack | RawArtist)[] }>(url);
-  return (data?.results.filter((r) => r.wrapperType === 'track') as RawTrack[] | undefined ?? []).map(toTrack);
+  const allTracks = (data?.results.filter((r) => r.wrapperType === 'track') as RawTrack[] | undefined ?? []).map(toTrack);
+  return {
+    tracks: allTracks.slice(offset, offset + pageSize),
+    hasMore: offset + pageSize < 199 && allTracks.length > offset + pageSize,
+  };
 }
 
 export async function fetchTopSongs(country = 'us', limit = 10): Promise<Track[]> {

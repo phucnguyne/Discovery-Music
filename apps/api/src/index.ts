@@ -3,6 +3,8 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { compress } from 'hono/compress';
+import { bodyLimit } from 'hono/body-limit';
+import { secureHeaders } from 'hono/secure-headers';
 import { API_PORT, WEB_ORIGIN } from '@music/config';
 import { catalog } from './routes/catalog.js';
 import { auth } from './routes/auth.js';
@@ -23,13 +25,60 @@ process.on('uncaughtException', (err) => {
 });
 
 const app = new Hono();
+const allowedOrigin = new URL(WEB_ORIGIN).origin;
+
+app.use(
+  '*',
+  secureHeaders({
+    contentSecurityPolicy: {
+      defaultSrc: ["'none'"],
+      baseUri: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    xFrameOptions: 'DENY',
+    xContentTypeOptions: 'nosniff',
+    strictTransportSecurity:
+      process.env.NODE_ENV === 'production' ? 'max-age=31536000' : false,
+  }),
+);
+
+app.use('*', async (c, next) => {
+  const method = c.req.method.toUpperCase();
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const origin = c.req.header('Origin');
+    if (origin) {
+      let requestOrigin: string;
+      try {
+        requestOrigin = new URL(origin).origin;
+      } catch {
+        return c.json({ ok: false, error: 'invalid origin' }, 403);
+      }
+      if (requestOrigin !== allowedOrigin) {
+        return c.json({ ok: false, error: 'origin not allowed' }, 403);
+      }
+    } else if (c.req.header('Sec-Fetch-Site') === 'cross-site') {
+      return c.json({ ok: false, error: 'cross-site request not allowed' }, 403);
+    }
+  }
+  await next();
+});
 
 app.use(
   '*',
   cors({
-    origin: WEB_ORIGIN,
+    origin: allowedOrigin,
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type'],
     credentials: true,
+  }),
+);
+
+app.use(
+  '*',
+  bodyLimit({
+    maxSize: 64 * 1024,
+    onError: (c) => c.json({ ok: false, error: 'request body too large' }, 413),
   }),
 );
 

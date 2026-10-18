@@ -1,13 +1,28 @@
 // apps/api/src/routes/catalog.ts
 import { Hono, type Context } from 'hono';
 import type { ApiResult, ArtistProfile, SearchResults } from '@music/types';
-import { searchQuerySchema, genreSlugSchema, artistIdSchema, albumIdSchema } from '@music/validation';
+import {
+  searchQuerySchema,
+  searchTracksQuerySchema,
+  artistTracksQuerySchema,
+  genreSlugSchema,
+  artistIdSchema,
+  albumIdSchema,
+} from '@music/validation';
 import { CACHE_TTL_MS } from '@music/config';
 import { cached } from '../lib/cache.js';
 import { findGenre } from '../lib/genres.js';
 import * as itunes from '../lib/itunes-provider.js';
+import { withinRateLimit, clientIp } from '../lib/rate-limit.js';
 
 export const catalog = new Hono();
+
+catalog.use('*', async (c, next) => {
+  if (!withinRateLimit(`catalog:${clientIp(c)}`, 120, 60 * 1000)) {
+    return c.json(fail('too many requests, try again shortly'), 429);
+  }
+  await next();
+});
 
 function ok<T>(data: T): ApiResult<T> {
   return { ok: true, data };
@@ -28,6 +43,10 @@ function setCacheHeader(c: Context, ttlMs: number) {
 
 // GET /catalog/search?q=...
 catalog.get('/search', async (c) => {
+  if (!withinRateLimit(`search:${clientIp(c)}`, 60, 60 * 1000)) {
+    return c.json(fail('too many searches, slow down a moment'), 429);
+  }
+
   const parsed = searchQuerySchema.safeParse({ q: c.req.query('q') });
   if (!parsed.success) {
     return c.json(fail(parsed.error.issues[0]?.message ?? 'invalid query'), 400);
@@ -47,11 +66,35 @@ catalog.get('/search', async (c) => {
   return c.json(ok(results));
 });
 
+// GET /catalog/search/tracks?q=...&offset=10
+catalog.get('/search/tracks', async (c) => {
+  if (!withinRateLimit(`search:${clientIp(c)}`, 60, 60 * 1000)) {
+    return c.json(fail('too many searches, slow down a moment'), 429);
+  }
+
+  const parsed = searchTracksQuerySchema.safeParse({
+    q: c.req.query('q'),
+    offset: c.req.query('offset') ?? '0',
+  });
+  if (!parsed.success) {
+    return c.json(fail(parsed.error.issues[0]?.message ?? 'invalid query'), 400);
+  }
+  const { q, offset } = parsed.data;
+  const result = await cached(`search-tracks:${q}:${offset}`, CACHE_TTL_MS.search, () =>
+    itunes.searchTracksPage(q, offset, 10),
+  );
+
+  setCacheHeader(c, CACHE_TTL_MS.search);
+  return c.json(ok(result));
+});
+
 // GET /catalog/charts/trending?country=us
 catalog.get('/charts/trending', async (c) => {
   const country = c.req.query('country') ?? 'us';
-  const tracks = await cached(`charts:trending:${country}`, CACHE_TTL_MS.charts, () =>
-    itunes.fetchTopSongs(country, 10),
+  if (!/^[a-z]{2}$/i.test(country)) return c.json(fail('invalid country code'), 400);
+  const countryCode = country.toLowerCase();
+  const tracks = await cached(`charts:trending:${countryCode}`, CACHE_TTL_MS.charts, () =>
+    itunes.fetchTopSongs(countryCode, 10),
   );
   setCacheHeader(c, CACHE_TTL_MS.charts);
   return c.json(ok(tracks));
@@ -60,8 +103,10 @@ catalog.get('/charts/trending', async (c) => {
 // GET /catalog/charts/new-releases?country=us
 catalog.get('/charts/new-releases', async (c) => {
   const country = c.req.query('country') ?? 'us';
-  const albums = await cached(`charts:new-releases:${country}`, CACHE_TTL_MS.charts, () =>
-    itunes.fetchTopAlbums(country, 10),
+  if (!/^[a-z]{2}$/i.test(country)) return c.json(fail('invalid country code'), 400);
+  const countryCode = country.toLowerCase();
+  const albums = await cached(`charts:new-releases:${countryCode}`, CACHE_TTL_MS.charts, () =>
+    itunes.fetchTopAlbums(countryCode, 10),
   );
   setCacheHeader(c, CACHE_TTL_MS.charts);
   return c.json(ok(albums));
@@ -94,18 +139,43 @@ catalog.get('/artists/:id', async (c) => {
   const { id } = parsed.data;
 
   const profile = await cached<ArtistProfile | null>(`artist:${id}`, CACHE_TTL_MS.artist, async () => {
-    const [artist, albums, topTracks] = await Promise.all([
+    const [artist, albums, trackPage] = await Promise.all([
       itunes.lookupArtist(id),
-      itunes.lookupArtistAlbums(id, 12),
-      itunes.lookupArtistTopTracks(id, 10),
+      itunes.lookupArtistAlbums(id, 200),
+      itunes.lookupArtistTopTracks(id, 0, 10),
     ]);
     if (!artist) return null;
-    return { artist, albums, topTracks };
+    return {
+      artist,
+      albums,
+      topTracks: trackPage.tracks,
+      hasMoreTopTracks: trackPage.hasMore,
+    };
   });
 
   if (!profile) return c.json(fail('artist not found'), 404);
   setCacheHeader(c, CACHE_TTL_MS.artist);
   return c.json(ok(profile));
+});
+
+// GET /catalog/artists/:id/tracks?offset=10
+catalog.get('/artists/:id/tracks', async (c) => {
+  const parsedId = artistIdSchema.safeParse({ id: c.req.param('id') });
+  const parsedQuery = artistTracksQuerySchema.safeParse({
+    offset: c.req.query('offset') ?? '0',
+  });
+  if (!parsedId.success) return c.json(fail('invalid artist id'), 400);
+  if (!parsedQuery.success) {
+    return c.json(fail(parsedQuery.error.issues[0]?.message ?? 'invalid offset'), 400);
+  }
+
+  const { id } = parsedId.data;
+  const { offset } = parsedQuery.data;
+  const page = await cached(`artist-tracks:${id}:${offset}`, CACHE_TTL_MS.artist, () =>
+    itunes.lookupArtistTopTracks(id, offset, 10),
+  );
+  setCacheHeader(c, CACHE_TTL_MS.artist);
+  return c.json(ok(page));
 });
 
 // GET /catalog/albums/:id — an album's own info plus its full tracklist.
@@ -117,7 +187,7 @@ catalog.get('/albums/:id', async (c) => {
   if (!parsed.success) return c.json(fail('invalid album id'), 400);
   const { id } = parsed.data;
 
-  const result = await cached(`album:${id}`, CACHE_TTL_MS.artist, () => itunes.lookupAlbum(id, 25));
+  const result = await cached(`album:${id}`, CACHE_TTL_MS.artist, () => itunes.lookupAlbum(id, 200));
 
   if (!result) return c.json(fail('album not found'), 404);
   setCacheHeader(c, CACHE_TTL_MS.artist);

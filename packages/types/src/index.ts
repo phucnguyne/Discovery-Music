@@ -100,6 +100,7 @@ export interface SearchResults {
 export interface ArtistProfile {
   artist: Artist;
   topTracks: Track[];
+  hasMoreTopTracks: boolean;
   albums: Album[];
 }
 

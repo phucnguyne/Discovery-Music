@@ -5,16 +5,28 @@ export const searchQuerySchema = z.object({
   q: z.string().trim().min(1, 'q is required').max(200),
 });
 
+export const searchTracksQuerySchema = searchQuerySchema.extend({
+  offset: z.coerce.number().int().min(0).max(190).refine((value) => value % 10 === 0, {
+    message: 'offset must be a multiple of 10',
+  }),
+});
+
+export const artistTracksQuerySchema = z.object({
+  offset: z.coerce.number().int().min(0).max(190).refine((value) => value % 10 === 0, {
+    message: 'offset must be a multiple of 10',
+  }),
+});
+
 export const genreSlugSchema = z.object({
   slug: z.string().trim().min(1).max(60),
 });
 
 export const artistIdSchema = z.object({
-  id: z.string().trim().regex(/^\d+$/, 'artist id must be numeric'),
+  id: z.string().trim().max(20).regex(/^\d+$/, 'artist id must be numeric'),
 });
 
 export const albumIdSchema = z.object({
-  id: z.string().trim().regex(/^\d+$/, 'album id must be numeric'),
+  id: z.string().trim().max(20).regex(/^\d+$/, 'album id must be numeric'),
 });
 
 export const paginationSchema = z.object({
