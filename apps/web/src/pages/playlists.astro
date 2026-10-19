@@ -4,7 +4,7 @@ import TopBar from '../components/TopBar.astro';
 import PlaylistsList from '../components/react/PlaylistsList';
 ---
 
-<Layout title="Playlists">
+<Layout title="Playlists" description="Create and manage your personal music playlists." noindex>
   <TopBar eyebrow="My music" title="Playlists" />
   <section class="section">
     <PlaylistsList client:load />

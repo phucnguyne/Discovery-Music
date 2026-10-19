@@ -9,9 +9,16 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description?: string;
+  noindex?: boolean;
 }
 
-const { title, description = 'Discover songs, albums and artists from the iTunes catalog.' } = Astro.props;
+const {
+  title,
+  description = 'Discover songs, albums and artists from the iTunes catalog.',
+  noindex = false,
+} = Astro.props;
+const siteUrl = import.meta.env.PUBLIC_SITE_URL;
+const canonicalUrl = siteUrl ? new URL(Astro.url.pathname, siteUrl).toString() : undefined;
 ---
 
 <html lang="en">
@@ -19,6 +26,14 @@ const { title, description = 'Discover songs, albums and artists from the iTunes
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
+    <meta name="theme-color" content="#e7e6eb" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Discovery Music" />
+    <meta property="og:title" content={`${title} · Discovery Music`} />
+    <meta property="og:description" content={description} />
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
     <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -31,10 +46,11 @@ const { title, description = 'Discover songs, albums and artists from the iTunes
     <ClientRouter />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="app-shell">
       <Sidebar />
       <div class="main-col">
-        <main class="main-inner">
+        <main class="main-inner" id="main-content" tabindex="-1">
           <slot />
         </main>
       </div>
@@ -50,3 +66,21 @@ const { title, description = 'Discover songs, albums and artists from the iTunes
     </script>
   </body>
 </html>
+
+<style>
+  .skip-link {
+    position: fixed;
+    z-index: 100;
+    top: 12px;
+    left: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-s);
+    background: var(--paper);
+    color: var(--ink-soft);
+    transform: translateY(-160%);
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+</style>

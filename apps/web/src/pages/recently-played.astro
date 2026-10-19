@@ -4,7 +4,7 @@ import TopBar from '../components/TopBar.astro';
 import RecentlyPlayedList from '../components/react/RecentlyPlayedList';
 ---
 
-<Layout title="Recently played">
+<Layout title="Recently played" description="Listen again to your recently played music." noindex>
   <TopBar eyebrow="My music" title="Recently played" />
   <section class="section">
     <RecentlyPlayedList client:load />

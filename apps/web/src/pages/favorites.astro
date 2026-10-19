@@ -4,7 +4,7 @@ import TopBar from '../components/TopBar.astro';
 import FavoritesList from '../components/react/FavoritesList';
 ---
 
-<Layout title="Favorite songs">
+<Layout title="Favorite songs" description="Your saved favorite songs." noindex>
   <TopBar eyebrow="My music" title="Favorite songs" />
   <section class="section">
     <FavoritesList client:load />

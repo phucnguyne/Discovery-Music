@@ -16,28 +16,39 @@ export default function SearchBar({ resultsPath = '/search', placeholder = 'Sear
   const [results, setResults] = useState<Track[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
+    const requestId = ++requestIdRef.current;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (term.trim().length < 2) {
       setResults([]);
       setOpen(false);
+      setLoading(false);
+      setError(null);
       return;
     }
     setLoading(true);
+    setError(null);
+    setOpen(false);
     debounceRef.current = setTimeout(async () => {
       try {
         // apps/web never talks to iTunes directly — @music/api owns that,
         // caches it, and hands back @music/types shapes.
         const { tracks } = await api.search(term);
-        setResults(tracks.slice(0, 6));
-        setOpen(true);
+        if (requestId !== requestIdRef.current) return;
+        const suggestions = tracks.slice(0, 6);
+        setResults(suggestions);
+        setOpen(suggestions.length > 0);
       } catch {
+        if (requestId !== requestIdRef.current) return;
         setResults([]);
+        setError('Search suggestions could not be loaded. Try the full search page.');
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) setLoading(false);
       }
     }, 320);
     return () => {
@@ -90,7 +101,7 @@ export default function SearchBar({ resultsPath = '/search', placeholder = 'Sear
   }
 
   return (
-    <div className="searchbar" ref={boxRef}>
+    <div className="searchbar" ref={boxRef} role="search">
       <svg className="searchbar__icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
         <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
         <line x1="16.4" y1="16.4" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -103,14 +114,32 @@ export default function SearchBar({ resultsPath = '/search', placeholder = 'Sear
         onFocus={() => results.length && setOpen(true)}
         onKeyDown={(e) => e.key === 'Enter' && goToResults()}
         aria-label="Search songs and artists"
+        aria-expanded={open}
+        aria-controls={open ? 'search-suggestions' : undefined}
       />
       {loading && <span className="searchbar__spinner" aria-hidden="true" />}
+      <span className="visually-hidden" role="status" aria-live="polite">
+        {loading
+          ? 'Loading search suggestions'
+          : error ??
+            (open
+              ? `${results.length} suggestions available`
+              : term.trim().length >= 2
+                ? 'No suggestions found. Press Enter to view all results.'
+                : '')}
+      </span>
+      {error && <p className="searchbar__error" role="alert">{error}</p>}
 
       {open && results.length > 0 && (
-        <ul className="searchbar__results" role="listbox">
+        <ul className="searchbar__results" id="search-suggestions">
           {results.map((r) => (
             <li key={r.id}>
-              <button type="button" onClick={() => play(r)} disabled={!r.previewUrl}>
+              <button
+                type="button"
+                onClick={() => play(r)}
+                disabled={!r.previewUrl}
+                aria-label={r.previewUrl ? `Play preview: ${r.title} by ${r.artistName}` : `${r.title} by ${r.artistName}, preview unavailable`}
+              >
                 <img src={thumbSrc(r.coverUrl)} alt="" width={34} height={34} loading="lazy" />
                 <span className="searchbar__results-meta">
                   <span className="searchbar__results-title">{r.title}</span>
@@ -145,6 +174,12 @@ export default function SearchBar({ resultsPath = '/search', placeholder = 'Sear
         }
         .searchbar input::placeholder { color: var(--ash-dim); }
         .searchbar input:focus { border-color: var(--amber-dim); }
+        .searchbar__error {
+          position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 51;
+          margin: 0; padding: 10px 12px; border: 1px solid var(--danger);
+          border-radius: var(--radius-s); background: var(--ink-soft); color: var(--danger);
+          font-size: 0.78rem;
+        }
         .searchbar__spinner {
           position: absolute; right: 14px; top: 50%; width: 13px; height: 13px;
           margin-top: -6.5px; border-radius: 50%;

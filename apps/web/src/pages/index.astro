@@ -37,15 +37,15 @@ const heroTrack = trending[0] ?? null;
 const trendingRest = trending.slice(1, 9);
 ---
 
-<Layout title="Home">
+<Layout
+  title="Discover music"
+  description="Explore trending songs, new album releases, artists and hand-picked music recommendations."
+>
   <TopBar eyebrow="Discovery Music" title="Find something to play" />
 
   {
     apiUnreachable && (
-      <p class="empty-state">
-        Couldn't reach @music/api — make sure it's running (<code>pnpm dev:api</code>) at the URL in
-        <code> PUBLIC_API_BASE_URL</code>.
-      </p>
+      <p class="empty-state" role="alert">We’re having trouble loading the music catalog. Please try again shortly.</p>
     )
   }
 

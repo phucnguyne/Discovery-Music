@@ -67,7 +67,7 @@ export default function SignupForm() {
         <span className="auth-form__hint">At least 8 characters, with a letter and a number.</span>
       </label>
 
-      {error && <p className="auth-form__error">{error}</p>}
+      {error && <p className="auth-form__error" role="alert">{error}</p>}
 
       <button type="submit" className="auth-form__submit" disabled={submitting}>
         {submitting ? 'Creating account…' : 'Create account'}

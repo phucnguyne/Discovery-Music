@@ -7,7 +7,7 @@ const { id } = Astro.params;
 if (!id) return Astro.redirect('/playlists');
 ---
 
-<Layout title="Playlist">
+<Layout title="Playlist" description="View and manage a personal music playlist." noindex>
   <TopBar eyebrow="Playlist" title="" />
   <section class="section">
     <PlaylistDetailView client:load playlistId={id} />

@@ -54,7 +54,7 @@ export default function LoginForm() {
         />
       </label>
 
-      {error && <p className="auth-form__error">{error}</p>}
+      {error && <p className="auth-form__error" role="alert">{error}</p>}
 
       <button type="submit" className="auth-form__submit" disabled={submitting}>
         {submitting ? 'Logging in…' : 'Log in'}

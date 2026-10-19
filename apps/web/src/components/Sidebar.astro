@@ -17,7 +17,7 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
       id="sidebar-toggle"
       aria-expanded="false"
       aria-controls="sidebar-nav"
-      aria-label="Toggle menu"
+      aria-label="Open menu"
     >
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
         <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -30,12 +30,12 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
       <p class="nav__label">Library</p>
       <ul class="nav__list">
         <li>
-          <a href="/" class:list={{ 'is-active': isActive('/') }}>
+          <a href="/" class:list={{ 'is-active': isActive('/') }} aria-current={isActive('/') ? 'page' : undefined}>
             <span>Browse</span>
           </a>
         </li>
         <li>
-          <a href="/search" class:list={{ 'is-active': isActive('/search') }}>
+          <a href="/search" class:list={{ 'is-active': isActive('/search') }} aria-current={isActive('/search') ? 'page' : undefined}>
             <span>Search</span>
           </a>
         </li>
@@ -46,7 +46,11 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         {
           GENRES.map((g) => (
             <li>
-              <a href={`/genre/${g.slug}`} class:list={{ 'is-active': isActive(`/genre/${g.slug}`) }}>
+              <a
+                href={`/genre/${g.slug}`}
+                class:list={{ 'is-active': isActive(`/genre/${g.slug}`) }}
+                aria-current={isActive(`/genre/${g.slug}`) ? 'page' : undefined}
+              >
                 <span>{g.label}</span>
               </a>
             </li>
@@ -57,17 +61,17 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
       <p class="nav__label">My music</p>
       <ul class="nav__list">
         <li>
-          <a href="/recently-played" class:list={{ 'is-active': isActive('/recently-played') }}>
+          <a href="/recently-played" class:list={{ 'is-active': isActive('/recently-played') }} aria-current={isActive('/recently-played') ? 'page' : undefined}>
             <span>Recently played</span>
           </a>
         </li>
         <li>
-          <a href="/favorites" class:list={{ 'is-active': isActive('/favorites') }}>
+          <a href="/favorites" class:list={{ 'is-active': isActive('/favorites') }} aria-current={isActive('/favorites') ? 'page' : undefined}>
             <span>Favorite songs</span>
           </a>
         </li>
         <li>
-          <a href="/playlists" class:list={{ 'is-active': isActive('/playlists') }}>
+          <a href="/playlists" class:list={{ 'is-active': isActive('/playlists') }} aria-current={isActive('/playlists') ? 'page' : undefined}>
             <span>Playlists</span>
           </a>
         </li>

@@ -18,12 +18,12 @@
   --line: #d5d3db;
   --paper: #17151d;
   --ash: #6c6976;
-  --ash-dim: #9a97a3;
-  --amber: #14c3b8;
-  --amber-dim: #0f9992;
+  --ash-dim: #6d6976;
+  --amber: #08766f;
+  --amber-dim: #08766f;
   --violet: #ff4d8d;
   --violet-dim: #cc3b70;
-  --danger: #e5464f;
+  --danger: #b4232c;
 
   /* Color — sidebar only. Darker charcoal gray, matching the reference's
      frosted-glass sidebar against the lighter (but still gray, not white) app. */
@@ -32,7 +32,7 @@
   --sb-line: #6c6975;
   --sb-text: #f5f4f7;
   --sb-text-muted: #c7c4cf;
-  --sb-text-dim: #9c99a6;
+  --sb-text-dim: #b7b4bf;
 
   /* Type */
   --font-display: 'Space Grotesk', 'Inter', -apple-system, sans-serif;

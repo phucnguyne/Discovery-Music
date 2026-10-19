@@ -14,6 +14,7 @@ document.addEventListener('click', (e) => {
   const isOpen = !nav.hidden;
   nav.hidden = isOpen;
   btn.setAttribute('aria-expanded', String(!isOpen));
+  btn.setAttribute('aria-label', isOpen ? 'Open menu' : 'Close menu');
 });
 
 // A client-side route change (view transition) should close the menu
@@ -24,5 +25,6 @@ document.addEventListener('astro:page-load', () => {
   if (nav && window.matchMedia('(max-width: 900px)').matches) {
     nav.hidden = true;
     btn?.setAttribute('aria-expanded', 'false');
+    btn?.setAttribute('aria-label', 'Open menu');
   }
 });

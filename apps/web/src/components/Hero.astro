@@ -15,7 +15,7 @@ const artwork = track?.coverUrl ?? '';
     <section class="hero">
       <div class="hero__copy">
         <span class="hero__eyebrow">No. 1 on today's chart</span>
-        <h1 class="hero__title">{track.title}</h1>
+        <h2 class="hero__title">{track.title}</h2>
         <p class="hero__artist">{track.artistName}{track.albumTitle ? ` — ${track.albumTitle}` : ''}</p>
         <div class="hero__row">
           {track.previewUrl && (
