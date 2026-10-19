@@ -5,13 +5,28 @@ import AccountMenu from './react/AccountMenu';
 interface Props {
   eyebrow?: string;
   title?: string;
+  backHref?: string;
+  backLabel?: string;
 }
-const { eyebrow, title } = Astro.props;
+const { eyebrow, title, backHref, backLabel } = Astro.props;
 ---
 
 <header class="topbar">
   <div class="topbar__heading">
-    {eyebrow && <span class="topbar__eyebrow">{eyebrow}</span>}
+    {
+      (eyebrow || backHref) && (
+        <div class="topbar__eyebrow-row">
+          {backHref && (
+            <a class="topbar__back" href={backHref} aria-label={`Back to ${backLabel ?? 'previous page'}`}>
+              <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+                <path d="M19 12H5m0 0 7 7m-7-7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+          )}
+          {eyebrow && <span class="topbar__eyebrow">{eyebrow}</span>}
+        </div>
+      )
+    }
     {title && <h1 class="topbar__title">{title}</h1>}
   </div>
   <div class="topbar__search">
@@ -30,14 +45,36 @@ const { eyebrow, title } = Astro.props;
     margin-bottom: 32px;
   }
 
+  .topbar__eyebrow-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 18px;
+    margin-bottom: 8px;
+  }
+
   .topbar__eyebrow {
-    display: block;
     font-family: var(--font-mono);
     font-size: 0.72rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--amber);
-    margin-bottom: 8px;
+  }
+
+  .topbar__back {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    margin-left: -5px;
+    border-radius: 999px;
+    color: var(--ash);
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .topbar__back:hover {
+    color: var(--paper);
+    background: var(--ink-raised);
   }
 
   .topbar__title {

@@ -16,7 +16,7 @@ let result: Awaited<ReturnType<typeof api.album>> | null = null;
 try {
   result = await api.album(id);
 } catch (err) {
-  if (err instanceof MusicApiError) {
+  if (err instanceof MusicApiError && (err.status === 400 || err.status === 404)) {
     return Astro.redirect('/404');
   }
   throw err;
@@ -24,15 +24,39 @@ try {
 
 const { album, tracks } = result;
 const playableCount = tracks.filter((t) => t.previewUrl).length;
+const returnFrom = Astro.url.searchParams.get('from');
+const searchQuery = Astro.url.searchParams.get('q')?.trim();
+const albumBackHref =
+  returnFrom === 'search' && searchQuery
+    ? `/search?q=${encodeURIComponent(searchQuery)}`
+    : album.artistId
+      ? `/artist/${album.artistId}${returnFrom === 'artist' && searchQuery
+          ? `?from=search&q=${encodeURIComponent(searchQuery)}`
+          : ''}`
+      : '/';
+const hasSearchReturn = returnFrom === 'search' && Boolean(searchQuery);
+const albumBackLabel = hasSearchReturn ? 'search' : album.artistId ? 'artist' : 'home';
+const artistHref = album.artistId
+  ? `/artist/${album.artistId}${searchQuery ? `?from=search&q=${encodeURIComponent(searchQuery)}` : ''}`
+  : undefined;
 ---
 
-<Layout title={album.title}>
-  <TopBar eyebrow="Album" title={album.title} />
+<Layout
+  title={`${album.title} album`}
+  description={`Explore ${album.title} by ${album.artistName}, view the tracklist and play available previews.`}
+>
+  <TopBar eyebrow="Album" title={album.title} backHref={albumBackHref} backLabel={albumBackLabel} />
 
   <section class="album-hero">
     <VinylArt src={album.coverUrl || '/logo-mark.svg'} alt={`${album.title} artwork`} size={150} ring={false} />
     <div>
-      <p class="album-hero__artist">{album.artistName}</p>
+      {
+        artistHref ? (
+          <a class="album-hero__artist" href={artistHref}>{album.artistName}</a>
+        ) : (
+          <p class="album-hero__artist">{album.artistName}</p>
+        )
+      }
       <p class="album-hero__meta">
         {album.genre}
         {album.genre && ' · '}
@@ -78,11 +102,17 @@ const playableCount = tracks.filter((t) => t.previewUrl).length;
   }
 
   .album-hero__artist {
+    display: inline-block;
     font-family: var(--font-mono);
     font-size: 0.78rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--amber);
+  }
+
+  a.album-hero__artist:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .album-hero__meta {

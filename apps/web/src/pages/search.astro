@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import TopBar from '../components/TopBar.astro';
 import SectionHeader from '../components/SectionHeader.astro';
 import AlbumCard from '../components/AlbumCard.astro';
-import TrackRow from '../components/TrackRow.astro';
+import SearchTracks from '../components/react/SearchTracks';
 import { api } from '../lib/api';
 
 export const prerender = false;
@@ -21,14 +21,17 @@ if (q) {
 }
 ---
 
-<Layout title={q ? `“${q}”` : 'Search'}>
-  <TopBar eyebrow="Search" title={q ? `Results for “${q}”` : 'Search the catalog'} />
+<Layout
+  title={q ? `“${q}”` : 'Search'}
+  description={q ? `Search songs, albums and artists matching “${q}”.` : 'Search the music catalog for songs, albums and artists.'}
+>
+  <TopBar eyebrow="Search" title={q ? `Results for “${q}”` : 'Search the catalog'} backHref="/" backLabel="home" />
 
-  {!q && <p class="empty-state">Type a song, artist, or album into the search box above to get started.</p>}
+  {!q && <p class="empty-state" role="status">Type a song, artist, or album into the search box above to get started.</p>}
 
   {
     apiUnreachable && (
-      <p class="empty-state">Couldn't reach @music/api — make sure it's running (<code>pnpm dev:api</code>).</p>
+      <p class="empty-state" role="alert">We couldn’t load search results. Please try again shortly.</p>
     )
   }
 
@@ -38,7 +41,7 @@ if (q) {
         <SectionHeader title="Artists" />
         <div class="grid-cards">
           {results.artists.map((a) => (
-            <a class="artist-chip" href={`/artist/${a.id}`}>
+            <a class="artist-chip" href={`/artist/${a.id}?from=search&q=${encodeURIComponent(q)}`}>
               <span class="artist-chip__avatar" aria-hidden="true">{a.name.slice(0, 1)}</span>
               <span class="artist-chip__name">{a.name}</span>
               <span class="artist-chip__genre">{a.genre}</span>
@@ -51,25 +54,12 @@ if (q) {
 
   {
     q && results.tracks.length > 0 && (
-      <section class="section">
-        <SectionHeader title="Songs" />
-        <div class="track-list">
-          {results.tracks.map((t, i) => (
-            <TrackRow
-              index={i + 1}
-              title={t.title}
-              artist={t.artistName}
-              artistId={t.artistId}
-              genre={t.genre}
-              album={t.albumTitle}
-              artwork={t.coverUrl}
-              trackId={t.id}
-              previewUrl={t.previewUrl}
-              durationMs={t.durationMs}
-            />
-          ))}
-        </div>
-      </section>
+      <SearchTracks
+        client:load
+        query={q}
+        initialTracks={results.tracks.slice(0, 10)}
+        hasMore={results.tracks.length > 10}
+      />
     )
   }
 
@@ -79,7 +69,12 @@ if (q) {
         <SectionHeader title="Albums" />
         <div class="grid-cards">
           {results.albums.map((a) => (
-            <AlbumCard title={a.title} subtitle={a.artistName} artwork={a.coverUrl} href={`/artist/${a.artistId}`} />
+            <AlbumCard
+              title={a.title}
+              subtitle={a.artistName}
+              artwork={a.coverUrl}
+              href={`/album/${a.id}?from=search&q=${encodeURIComponent(q)}`}
+            />
           ))}
         </div>
       </section>
@@ -92,18 +87,12 @@ if (q) {
       results.tracks.length === 0 &&
       results.albums.length === 0 &&
       results.artists.length === 0 && (
-        <p class="empty-state">No results for “{q}”. Try a different spelling or a broader term.</p>
+        <p class="empty-state" role="status">No results for “{q}”. Try a different spelling or a broader term.</p>
       )
   }
 </Layout>
 
 <style>
-  .track-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
   .artist-chip {
     display: flex;
     flex-direction: column;
