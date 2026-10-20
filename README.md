@@ -1,214 +1,395 @@
-# Music Discovery — Monorepo
+<div align="center">
+
+# 🎵 Discovery Music
+
+**A full-stack music discovery app for exploring songs, albums, artists, and
+genres — with previews, favorites, playlists, and recommendations.**
+
+[![Astro](https://img.shields.io/badge/Astro-7-BC52EE?style=flat-square&logo=astro&logoColor=white)](https://astro.build)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
+[![Hono](https://img.shields.io/badge/Hono-4-E36002?style=flat-square&logo=hono&logoColor=white)](https://hono.dev)
+[![pnpm](https://img.shields.io/badge/pnpm-11-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-compatible-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
+
+[Getting Started](#-getting-started) · [API Reference](#-api-reference) · [Deployment](#-deployment)
+
+</div>
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| 🔎 **Music search** | Search songs, albums, and artists with live suggestions and a full results page |
+| ➕ **Load more** | Load 10 additional songs at a time on the search results page |
+| 📈 **Charts** | Browse trending songs and new releases from Apple’s charts feed |
+| 🎸 **Genres** | Explore curated song and album results across 10 genres |
+| 👤 **Artist profiles** | View artist details, top tracks, and albums |
+| 💿 **Album tracklists** | Open an album to browse its tracks and available previews |
+| ▶️ **Music player** | Play 30-second previews and keep playback while navigating |
+| ❤️ **Favorites** | Save songs to a personal favorites library |
+| 📂 **Playlists** | Create playlists and add or remove songs |
+| 🕘 **Listening history** | View recently played songs and use listening history for recommendations |
+| 🔐 **Accounts** | Sign up, log in, manage account details, and use secure session cookies |
+| ♿ **Accessible UI** | Keyboard focus styles, skip link, accessible controls, and screen-reader status messages |
+| 🔒 **API protections** | Input validation, rate limiting, security headers, origin checks, and request-size limits |
+
+---
+
+## 🏗️ Architecture
 
 ```
-                    Music Discovery
-                          │
-              ┌───────────┴───────────┐
-              │                       │
-           Web App              Mobile App
-            Astro               (not built yet —
-              │                  see note below)
-       React Islands
-              │
-              └───────────┬───────────
-                          │
-                     Shared API
-                    (@music/api)
-                          │
-                  ┌───────┴────────┐
-                  │                │
-              Backend          External APIs
-        (cache + Postgres           │
-         via Drizzle;         iTunes Search API
-        PGlite dev / Neon      + Apple charts feed
-         etc. in prod)         (Spotify/etc. later)
+┌───────────────────────────────────────────────────────────┐
+│                  Browser / Web client                     │
+│             Astro SSR pages + React islands               │
+└────────────────────────────┬──────────────────────────────┘
+                             │ HTTPS / JSON / session cookies
+┌────────────────────────────▼──────────────────────────────┐
+│                   @music/api-client                       │
+│               Shared typed API interface                  │
+└────────────────────────────┬──────────────────────────────┘
+                             │
+┌────────────────────────────▼──────────────────────────────┐
+│                   @music/api (Hono)                       │
+│  Auth · Catalog · Favorites · Playlists · Listening history│
+└─────────────┬───────────────────────────────┬─────────────┘
+              │                               │
+┌─────────────▼──────────────┐  ┌─────────────▼─────────────┐
+│ Drizzle ORM + PostgreSQL   │  │ In-process cache and      │
+│ PGlite for local development│  │ rate limiter              │
+└────────────────────────────┘  └─────────────┬─────────────┘
+                                               │
+                                  ┌────────────▼─────────────┐
+                                  │ iTunes Search API and    │
+                                  │ Apple charts feed        │
+                                  └──────────────────────────┘
 ```
 
-**Mobile/Expo is intentionally not built yet.** Everything below is scoped
-to `apps/web` + `apps/api` + the shared `packages/*`, structured so an
-`apps/mobile` (Expo) can be dropped in later and reuse `packages/types`,
-`packages/api-client`, `packages/validation`, and `packages/domain` as-is —
-per the "don't share UI, do share types/client/domain logic" split.
+The API owns the external music-provider integration and maps its responses
+to shared `@music/types`. The web app calls the API through the shared typed
+client rather than calling iTunes directly. Shared packages also contain
+validation schemas and recommendation logic.
 
-## Structure
+The monorepo is structured so another client, such as a future mobile app,
+can reuse the shared API client, types, validation, and domain packages.
+There is no mobile application in this repository yet.
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+| Tool | Purpose |
+|------|---------|
+| Astro 7 | Server-rendered pages and application shell |
+| React 19 | Interactive islands such as search and music playback |
+| TypeScript | Type-safe UI and client code |
+| CSS | Shared design tokens, responsive layouts, and component styles |
+| Astro Transitions | Client-side navigation while preserving persistent player islands |
+
+### Backend
+
+| Tool | Purpose |
+|------|---------|
+| Hono | HTTP API and middleware |
+| Drizzle ORM | Database access and schema management |
+| PGlite | Embedded PostgreSQL for local development |
+| PostgreSQL | Production database option, including Supabase or Neon |
+| Zod | Shared request validation |
+| Node.js crypto | Password hashing and token utilities |
+
+### Monorepo and data
+
+| Tool | Purpose |
+|------|---------|
+| pnpm workspaces | Package and app management |
+| Turborepo | Workspace dev, build, and typecheck tasks |
+| iTunes Search API | Song, album, and artist catalog search |
+| Apple charts feed | Trending songs and new releases |
+
+---
+
+## 📁 Project Structure
 
 ```
-music-discovery/
+music-discovery-monorepo/
 ├── apps/
-│   ├── web/              # Astro + React islands (see apps/web/README.md)
-│   └── api/               # Hono backend — owns the iTunes integration
-│
+│   ├── api/                         # Hono API
+│   │   ├── src/
+│   │   │   ├── db/                  # Drizzle schema, client, migrations
+│   │   │   ├── lib/                 # Auth, cache, providers, rate limiting
+│   │   │   ├── routes/              # Auth, catalog, and user routes
+│   │   │   └── index.ts             # Middleware and server entry point
+│   │   └── drizzle/                 # SQL migrations
+│   └── web/                         # Astro + React frontend
+│       └── src/
+│           ├── components/          # Astro components and React islands
+│           ├── layouts/             # Shared page layout and metadata
+│           ├── lib/                 # API client and browser helpers
+│           ├── pages/               # Home, search, genre, artist, album, account
+│           └── styles/              # Global styles and design tokens
 ├── packages/
-│   ├── types/              # Track, Album, Artist, Genre, ApiResult<T>
-│   ├── validation/         # Zod schemas (search query, artist id, genre slug)
-│   ├── api-client/         # Typed client apps/web (and later apps/mobile) call
-│   ├── domain/             # Non-ML "because you listened to X" logic
-│   └── config/              # Shared ports / base URLs / cache TTLs
-│
+│   ├── api-client/                  # Typed client for @music/api
+│   ├── config/                      # Shared ports, origins, and cache TTLs
+│   ├── domain/                      # Recommendation and domain logic
+│   ├── types/                       # Shared TypeScript types
+│   └── validation/                  # Shared Zod schemas
+├── render.yaml                      # Render Blueprint for web and API
 ├── pnpm-workspace.yaml
 ├── turbo.json
 └── package.json
 ```
 
-## Why a backend now, not just apps/web hitting iTunes directly
+---
 
-The previous version of this project had `apps/web` calling
-`itunes.apple.com` straight from Astro frontmatter and from the browser.
-That doesn't scale to a second client. Now:
+## 🎼 Music Data
 
-- **`apps/api`** is the only thing that knows iTunes' response shape
-  (`apps/api/src/lib/itunes-provider.ts`). It maps iTunes' fields onto
-  `@music/types`, so swapping or adding a provider later (Spotify, Apple
-  Music API, etc.) means editing one file, not every consumer.
-- It caches upstream calls in-process (`apps/api/src/lib/cache.ts` — a
-  documented stand-in for Redis, same `get/set(ttl)` shape so swapping it
-  in later doesn't touch call sites).
-- **`apps/web`** never imports anything iTunes-shaped anymore. It only
-  imports `@music/api-client`, which only knows about `@music/api`.
-- A future **`apps/mobile`** would import the exact same `@music/api-client`
-  and `@music/types` — zero new integration code, by design.
+The app uses public Apple music catalog endpoints and does not require an API
+key for local development.
 
-## Run it
+| Provider | Used for | Notes |
+|----------|----------|-------|
+| **iTunes Search API** | Search, artist and album lookups, genre results | Catalog entries may not have a preview |
+| **Apple charts feed** | Trending songs and new releases | Some chart items do not include preview or artist identifiers |
+
+Song previews are limited to 30 seconds. Genre pages use curated search terms
+because the iTunes Search API does not provide a dedicated genre-browse
+endpoint.
+
+---
+
+## 🚀 Getting Started
+
+### Requirements
+
+- Node.js `>=22.12.0`
+- pnpm `11.24.0` (the version declared in `package.json`)
+
+Enable pnpm through Corepack if it is not already available:
 
 ```bash
+corepack enable
+corepack prepare pnpm@11.24.0 --activate
+```
+
+### Install and configure
+
+```bash
+git clone https://github.com/phucnguyne/Discovery-Music.git
+cd Discovery-Music
 pnpm install
-
-# both apps, via turbo
-pnpm dev
-
-# or individually
-pnpm dev:api   # http://localhost:4322
-pnpm dev:web   # http://localhost:4321, reads PUBLIC_API_BASE_URL
 ```
 
-`apps/web` needs `apps/web/.env` (copy `.env.example`) pointing
-`PUBLIC_API_BASE_URL` at the API — defaults to `http://localhost:4322` if
-you don't set it, so a plain `pnpm dev` works out of the box.
+Create `apps/api/.env` with a JWT secret and the local web origin:
 
-```bash
-pnpm build   # builds every package/app in dependency order via turbo
+```dotenv
+JWT_SECRET=replace-with-a-long-random-secret
+WEB_ORIGIN=http://localhost:4321
 ```
 
-## Database & accounts
-
-`apps/api` now persists users/sessions through Drizzle over Postgres. Which
-Postgres you get is decided entirely by `DATABASE_URL`:
+For example, generate a secret with:
 
 ```bash
-# Local dev — do nothing. First `pnpm dev:api` run creates
-# apps/api/data/pglite/ (an embedded, file-backed Postgres — PGlite),
-# migrated automatically the first time you run:
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+By default the API creates a local, file-backed PGlite database under
+`apps/api/data/`. No database server or Docker setup is needed. To use a
+PostgreSQL server instead, add its connection string:
+
+```dotenv
+DATABASE_URL=postgresql://user:password@host:5432/database
+```
+
+Apply the database migrations before starting the API:
+
+```bash
 pnpm --filter @music/api db:migrate
-
-# Production — point at a real Postgres and run the same migration:
-DATABASE_URL=postgres://user:pass@host/db pnpm --filter @music/api db:migrate
 ```
 
-Same `apps/api/src/db/schema.ts` either way — see that file and
-`apps/api/src/db/client.ts` for the full explanation. Changing the schema:
-`pnpm --filter @music/api db:generate` writes a new SQL file to
-`apps/api/drizzle/`, then run `db:migrate` again to apply it.
+Create `apps/web/.env` (or copy `apps/web/.env.example`) and set the API URL:
 
-Auth is `/auth/signup`, `/auth/login`, `/auth/logout`, `/auth/me` on
-`apps/api` (`apps/api/src/routes/auth.ts`) — email + password only for now,
-session cookie based (httpOnly, 30-day expiry). `apps/web` reaches these
-through `@music/api-client`'s `signup`/`login`/`logout`/`me` methods.
-Cross-origin cookies mean CORS can no longer use a wildcard origin once
-this is live — set `WEB_ORIGIN` in `apps/api/.env` if `apps/web` isn't on
-its default dev port.
-
-Also added: `POST /me/listening-events` (fire-and-forget, called from
-`MusicPlayer.tsx` the moment a track actually starts) and `GET
-/me/listening-events` (feeds `packages/domain`'s `pickRecommendationSeed`
-on the home page — real listening history now, not the cold-start random
-pick, once a signed-in user has played anything). `PATCH /me` updates
-`displayName` and/or password (`apps/web`'s `/account` page).
-
-## Deploying
-
-Three moving pieces: a Postgres database (Supabase), and two long-running
-Node services (`apps/api`, `apps/web`) — neither is a static site or a
-serverless function, both need a host that keeps a process running.
-`render.yaml` at the repo root is a ready-made
-[Render Blueprint](https://render.com/docs/infrastructure-as-code) for
-exactly that, with a genuinely free tier for a low-traffic/demo project
-(the tradeoff: a free service spins down after 15 min idle, so the first
-request after a quiet stretch takes ~30-50s to wake back up — fine for a
-personal project, not for something latency-sensitive).
-
-**1. Database — Supabase**
-
-Create a project at [supabase.com](https://supabase.com) (free tier). Once
-it's up: **Connect → Session pooler**, not "Direct connection" — Supabase's
-direct connection resolves to an IPv6-only address by default, which most
-PaaS hosts (including Render) can't reach outbound, so it'll fail with
-"connection refused"/"no route to host" if you use it. The Session pooler
-string is IPv4-compatible and, unlike the Transaction pooler, supports the
-persistent connections and prepared statements this app's `pg.Pool` uses —
-it looks like:
-
-```
-postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+```dotenv
+PUBLIC_API_BASE_URL=http://localhost:4322
+# Optional: public website origin for canonical and Open Graph URLs
+# PUBLIC_SITE_URL=https://music.example.com
 ```
 
-Run the migration against it once, from your own machine:
+### Start the application
+
+Run both apps together:
 
 ```bash
-DATABASE_URL="postgres://...pooler.supabase.com:5432/postgres" pnpm --filter @music/api db:migrate
+pnpm dev
 ```
 
-**2. Push to GitHub**, then in Render: **New → Blueprint**, pick the repo.
-Render reads `render.yaml` and proposes both services
-(`music-api`, `music-web`). Before clicking deploy, you'll be prompted for
-the `sync: false` env vars — for the first pass, set:
+Or run each app in a separate terminal:
 
-- `music-api`'s `DATABASE_URL` → the Supabase Session pooler string above
-- `music-api`'s `WEB_ORIGIN` → leave as a placeholder for now (e.g. `https://music-web.onrender.com` — Render names services `<name>.onrender.com` when that subdomain is free, matching the blueprint's `name:` field)
-- `music-web`'s `PUBLIC_API_BASE_URL` → same idea: `https://music-api.onrender.com`
+```bash
+pnpm dev:api
+pnpm dev:web
+```
 
-**3. After both deploy once**, open each service's page on Render and
-confirm its real public URL under the service name at the top. If either
-guessed URL above didn't match, go back to Environment on the *other*
-service and correct it:
+Open [http://localhost:4321](http://localhost:4321). The API listens on
+[http://localhost:4322](http://localhost:4322) by default. Run the migration
+command once when setting up a new local database.
 
-- `music-api`'s `WEB_ORIGIN` must exactly equal `music-web`'s real URL (scheme + host, no trailing slash) — CORS matches it literally.
-- `music-web`'s `PUBLIC_API_BASE_URL` must equal `music-api`'s real URL — this one's baked into the browser bundle at build time, so changing it triggers (and needs) a redeploy of `music-web`, not just a restart.
+### Build and typecheck
 
-Once both agree, sign up on the live site and confirm login/logout and
-search actually work end-to-end — that exercises the full chain (browser
-→ `music-web` → `music-api` → Supabase, plus the CORS+cookie path) in one
-go.
+```bash
+pnpm typecheck
+pnpm build
+```
 
-## Known limitations (carried over / new)
+---
 
-- iTunes previews are 30 seconds only — an API limitation, not this app's.
-- Genre pages resolve a curated search term per genre
-  (`apps/api/src/lib/genres.ts`) since iTunes has no real "browse by genre"
-  route.
-- "Trending" / "New releases" now hit Apple's real Marketing Tools charts
-  feed (`rss.marketingtools.apple.com`), not a search-term stand-in — see
-  `fetchTopSongs`/`fetchTopAlbums` in `apps/api/src/lib/itunes-provider.ts`.
-  That feed doesn't return `artistId`, preview URL, or track duration, so
-  chart-sourced tracks/albums render without an artist link or a play
-  button. `apps/web`'s `AlbumCard` renders as a static (non-link) card
-  when `artistId` is empty rather than pointing at a broken `/artist/`
-  route.
-- The in-memory cache and rate-limiter in `apps/api` are per-process — fine
-  for one API instance, not for horizontal scaling. That's the
-  Redis-shaped seam mentioned above.
-- Accounts exist now (email + password, `apps/api/src/routes/auth.ts`),
-  backed by Drizzle over an embedded PGlite database in dev (zero setup —
-  see `apps/api/src/db/client.ts`) or real Postgres in production via
-  `DATABASE_URL` (Supabase, Neon, etc. — same schema, no code changes).
-  `packages/domain`'s recommendation logic now reads real
-  `listening_events` rows (via `GET /me/listening-events`) once a
-  signed-in user has played anything; it only falls back to the
-  cold-start random pick for a brand-new account with no plays yet.
-- This sandbox's outbound network only allowlists npm/GitHub-type domains,
-  so I could verify the whole request chain (`web → api → cache → iTunes`)
-  end-to-end, but iTunes itself returns nothing here — every route still
-  responded correctly with empty-but-valid data instead of erroring. Run
-  it somewhere with normal internet access and real results will show up.
-  The `/auth` routes, by contrast, were tested for real against the local
-  PGlite database (signup, login, logout, wrong-password, duplicate-email,
-  weak-password, and CORS/cookie behavior all verified end-to-end).
+## 📡 API Reference
+
+The API is served by `apps/api`. Routes return JSON using the shape
+`{ "ok": true, "data": ... }` for success and
+`{ "ok": false, "error": "..." }` for errors.
+
+### Catalog
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/health` | Health check |
+| GET | `/catalog/search?q=...` | Search songs, albums, and artists |
+| GET | `/catalog/search/tracks?q=...&offset=10` | Retrieve a 10-song page for “load more” |
+| GET | `/catalog/charts/trending?country=us` | Trending songs |
+| GET | `/catalog/charts/new-releases?country=us` | New-release albums |
+| GET | `/catalog/genres/:slug` | Songs and albums for a known genre |
+| GET | `/catalog/artists/:id` | Artist profile, albums, and top tracks |
+| GET | `/catalog/artists/:id/tracks?offset=10` | Retrieve the next 10 artist tracks |
+| GET | `/catalog/albums/:id` | Album details and tracklist |
+
+Search requests are rate-limited. The tracks paging endpoint accepts
+non-negative offsets in increments of 10; the upstream catalog limits the
+maximum number of results.
+
+Artist pages initially show 10 tracks and load additional tracks in batches
+of 10. Artist album lookup requests up to 200 albums, the maximum requested
+from the iTunes Lookup API.
+
+Selecting an album on an artist page opens the local album detail page,
+which retrieves and displays that album’s tracks (up to 200) with available
+preview and library controls.
+
+### Authentication
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| POST | `/auth/signup` | Create an account and start a session |
+| POST | `/auth/login` | Log in |
+| POST | `/auth/logout` | Revoke the refresh token and clear cookies |
+| POST | `/auth/refresh` | Issue a new access token |
+| GET | `/auth/me` | Get the current user |
+
+Authentication uses HTTP-only cookies. In production, configure `WEB_ORIGIN`
+to the exact public origin of the web app so credentialed CORS requests are
+allowed.
+
+### User library (`/me`)
+
+These routes require an authenticated session unless noted by the client:
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| PATCH | `/me` | Update display name or password |
+| POST | `/me/listening-events` | Record a play for listening history |
+| GET | `/me/listening-events?limit=50` | Get recent listening events |
+| GET | `/me/recently-played?limit=30` | Get recently played songs |
+| GET | `/me/favorites` | List favorite songs |
+| POST | `/me/favorites` | Add a song to favorites |
+| POST | `/me/favorites/check` | Check which songs are favorites |
+| DELETE | `/me/favorites/:trackId` | Remove a favorite |
+| GET | `/me/playlists` | List playlists |
+| POST | `/me/playlists` | Create a playlist |
+| GET | `/me/playlists/:id` | Get playlist details and tracks |
+| DELETE | `/me/playlists/:id` | Delete a playlist |
+| POST | `/me/playlists/:id/tracks` | Add a song to a playlist |
+| DELETE | `/me/playlists/:id/tracks/:trackId` | Remove a song from a playlist |
+
+---
+
+## 🧪 Validation
+
+The repository currently provides workspace typechecking and production
+build commands:
+
+```bash
+pnpm typecheck
+pnpm build
+```
+
+`pnpm typecheck` runs TypeScript checks for the API and Astro diagnostics for
+the web app. `pnpm build` builds the API and web app through Turborepo.
+
+---
+
+## 🚢 Deployment
+
+The repository includes a [Render Blueprint](render.yaml) that defines two
+web services: `music-api` and `music-web`. A PostgreSQL database must also be
+configured for production accounts and user data.
+
+1. Create a PostgreSQL database with a provider such as Supabase or Neon.
+2. Apply the migrations against the production database:
+
+   ```bash
+   DATABASE_URL="postgresql://..." pnpm --filter @music/api db:migrate
+   ```
+
+3. Deploy the repository through **New → Blueprint** in Render.
+4. Configure `music-api` with:
+   - `DATABASE_URL` — the PostgreSQL connection string.
+   - `JWT_SECRET` — generate a strong secret; Render can generate one.
+   - `WEB_ORIGIN` — the public origin of `music-web`, with scheme and host,
+     and no trailing slash.
+5. Configure `music-web` with:
+   - `PUBLIC_API_BASE_URL` — the public origin of `music-api`.
+   - Optionally, `PUBLIC_SITE_URL` — the public origin of `music-web` for
+     canonical and Open Graph metadata.
+6. After the first deploy, verify the actual service URLs and update the
+   origin variables if Render assigned different URLs. Redeploy the web app
+   after changing `PUBLIC_API_BASE_URL`, since it is included in the browser
+   bundle at build time.
+
+The API binds to `PORT` when provided by the host, otherwise to `API_PORT` or
+port `4322`. The web service should bind to `0.0.0.0` in hosted environments.
+
+---
+
+## ⚠️ Known Limitations
+
+- The in-process API cache and rate limiter are per instance. Multi-instance
+  deployments should move them to shared infrastructure such as Redis.
+- iTunes results and Apple charts may omit preview URLs, artist IDs, or other
+  metadata; the UI handles these fields as optional.
+- Previews are 30-second clips, subject to Apple’s catalog availability.
+- Recommendations use listening history when available and a cold-start
+  selection for accounts without listening events.
+- The mobile app is not implemented yet.
+
+---
+
+## 🤝 Contributing
+
+1. Create a branch for your change.
+2. Make the change and run `pnpm typecheck` and `pnpm build`.
+3. Open a pull request with a summary and validation results.
+
+---
+
+## 📄 License
+
+No license file is currently included in this repository.
+
+---
+
+<div align="center">
+  Built for discovering your next favorite song 🎧
+</div>
