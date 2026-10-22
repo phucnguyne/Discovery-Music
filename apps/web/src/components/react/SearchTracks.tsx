@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Track } from '@music/types';
 import { api } from '../../lib/api';
 import { formatDuration, thumbSrc } from '../../lib/format';
+import ArtistNames from './ArtistNames';
 
 type Props = {
   initialTracks: Track[];
@@ -58,7 +59,7 @@ export default function SearchTracks({
             />
             <div className="track-row__meta">
               <p className="track-row__title">{track.title}</p>
-              <p className="track-row__artist">{track.artistName}</p>
+              <ArtistNames className="track-row__artist" name={track.artistName} artistId={track.artistId} />
             </div>
             <span className="track-row__duration">{formatDuration(track.durationMs)}</span>
 
@@ -170,7 +171,8 @@ export default function SearchTracks({
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .track-row__title { color: var(--paper); font-size: 0.92rem; font-weight: 600; }
-        .track-row__artist { margin-top: 2px; color: var(--ash); font-size: 0.8rem; }
+        .track-row__artist { display: block; margin-top: 2px; color: var(--ash); font-size: 0.8rem; }
+        .track-row__artist a:hover { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }
         .track-row__icon-btn, .track-row__play {
           display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px;
           color: var(--ash-dim); transition: color 0.15s ease, background 0.15s ease, opacity 0.15s ease;

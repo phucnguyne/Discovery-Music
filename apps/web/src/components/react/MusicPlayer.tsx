@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { PLAY_TRACK_EVENT, type PlayTrackDetail } from '../../lib/events';
+import { OPEN_QUEUE_EVENT, PLAY_STATE_EVENT, PLAY_TRACK_EVENT, TOGGLE_PLAY_EVENT, type PlayTrackDetail } from '../../lib/events';
 import { api } from '../../lib/api';
 import { thumbSrc } from '../../lib/format';
+import ArtistNames from './ArtistNames';
 
 const BAR_COUNT = 40;
+type RepeatMode = 'off' | 'track' | 'list';
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -21,6 +23,8 @@ export default function MusicPlayer() {
   const [duration, setDuration] = useState(30); // preview clips are ~30s
   const [volume, setVolume] = useState(0.85);
   const [error, setError] = useState<string | null>(null);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
+  const [autoplayNext, setAutoplayNext] = useState(true);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -44,7 +48,18 @@ export default function MusicPlayer() {
 
     const onTime = () => setProgress(audio.currentTime);
     const onLoaded = () => setDuration(audio.duration || 30);
-    const onEnded = () => playAtIndex(queueIndexRef.current + 1);
+    const onEnded = () => {
+      const mode = repeatModeRef.current;
+      if (mode === 'track') {
+        playAtIndex(queueIndexRef.current);
+      } else if (mode === 'list') {
+        playAtIndex(queueIndexRef.current + 1);
+      } else if (autoplayNextRef.current && queueIndexRef.current < queueRef.current.length - 1) {
+        playAtIndex(queueIndexRef.current + 1);
+      } else {
+        setIsPlaying(false);
+      }
+    };
     const onError = () => setError('This track has no playable preview.');
 
     audio.addEventListener('timeupdate', onTime);
@@ -62,16 +77,30 @@ export default function MusicPlayer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const handler = () => togglePlay();
+    window.addEventListener(TOGGLE_PLAY_EVENT, handler);
+    return () => window.removeEventListener(TOGGLE_PLAY_EVENT, handler);
+  });
+
   // Keep a ref mirror of queueIndex/queue so the 'ended' handler (bound once)
   // always sees fresh values without re-registering the audio element.
   const queueIndexRef = useRef(0);
   const queueRef = useRef<PlayTrackDetail[]>([]);
+  const repeatModeRef = useRef<RepeatMode>('off');
+  const autoplayNextRef = useRef(true);
   useEffect(() => {
     queueIndexRef.current = queueIndex;
   }, [queueIndex]);
   useEffect(() => {
     queueRef.current = queue;
   }, [queue]);
+  useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
+  useEffect(() => {
+    autoplayNextRef.current = autoplayNext;
+  }, [autoplayNext]);
 
   const playAtIndex = useCallback((idx: number) => {
     const q = queueRef.current;
@@ -92,6 +121,7 @@ export default function MusicPlayer() {
     setCurrent(track);
     setQueue(newQueue);
     setQueueIndex(idx);
+    setIsPlaying(false);
     setProgress(0);
     const audio = audioRef.current;
     if (!audio) return;
@@ -183,7 +213,7 @@ export default function MusicPlayer() {
   useEffect(() => {
     if (current) {
       window.dispatchEvent(
-        new CustomEvent('musicdisco:play-state', {
+        new CustomEvent(PLAY_STATE_EVENT, {
           detail: { id: current.id, isPlaying },
         })
       );
@@ -197,6 +227,9 @@ export default function MusicPlayer() {
       audio.pause();
       setIsPlaying(false);
     } else {
+      if (audio.ended || (audio.duration > 0 && audio.currentTime >= audio.duration)) {
+        audio.currentTime = 0;
+      }
       audio.play().then(() => setIsPlaying(true)).catch(() => setError('Playback was blocked — tap play again.'));
     }
   }
@@ -215,6 +248,10 @@ export default function MusicPlayer() {
     if (audioRef.current) audioRef.current.volume = v;
   }
 
+  function cycleRepeatMode() {
+    setRepeatMode((mode) => mode === 'off' ? 'track' : mode === 'track' ? 'list' : 'off');
+  }
+
   if (!current) {
     return (
       <div className="player player--idle" role="status">
@@ -229,7 +266,7 @@ export default function MusicPlayer() {
         <img src={thumbSrc(current.artwork, 100)} alt="" className="player__art" width={52} height={52} loading="lazy" />
         <div className="player__meta">
           <p className="player__title">{current.title}</p>
-          <p className="player__artist">{current.artist}</p>
+          <ArtistNames className="player__artist" name={current.artist} artistId={current.artistId} />
         </div>
       </div>
 
@@ -286,6 +323,46 @@ export default function MusicPlayer() {
         <input type="range" min={0} max={1} step={0.01} value={volume} onChange={changeVolume} aria-label="Volume" />
       </div>
 
+      <div className="player__options" aria-label="Playback options">
+        <button
+          type="button"
+          className="player__option"
+          aria-label={`Repeat ${repeatMode === 'off' ? 'off' : repeatMode === 'track' ? 'one track' : 'list'}`}
+          aria-pressed={repeatMode !== 'off'}
+          title={`Repeat: ${repeatMode}`}
+          onClick={cycleRepeatMode}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {repeatMode === 'track' && <span className="player__repeat-one">1</span>}
+        </button>
+        <button
+          type="button"
+          className="player__option"
+          aria-label={`Autoplay next ${autoplayNext ? 'on' : 'off'}`}
+          aria-pressed={autoplayNext}
+          title={`Autoplay next: ${autoplayNext ? 'on' : 'off'}`}
+          onClick={() => setAutoplayNext((enabled) => !enabled)}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M4 5h10M4 9h10M4 13h6M17 12l5 4-5 4v-8z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="player__option player__queue-button"
+          aria-label="Open queue"
+          title="Queue"
+          onClick={() => window.dispatchEvent(new CustomEvent(OPEN_QUEUE_EVENT))}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M4 6h16M4 12h10M4 18h10m4-8 4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>Queue</span>
+        </button>
+      </div>
+
       <style>{`
         .player {
           position: fixed;
@@ -297,7 +374,7 @@ export default function MusicPlayer() {
           border-top: none;
           box-shadow: 0 -8px 24px -16px rgba(23, 21, 29, 0.18);
           display: grid;
-          grid-template-columns: 240px 1fr 160px;
+          grid-template-columns: 240px minmax(280px, 1fr) auto auto;
           align-items: center;
           gap: 20px;
           padding: 0 24px;
@@ -317,6 +394,8 @@ export default function MusicPlayer() {
         .player__meta { min-width: 0; }
         .player__title { font-size: 0.9rem; font-weight: 600; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .player__artist { margin-top: 2px; font-size: 0.78rem; color: var(--ash); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .player__artist { display: block; width: fit-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .player__artist a:hover { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }
         .player__center { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
         .player__transport { display: flex; align-items: center; gap: 14px; }
         .player__transport button { color: var(--ash); display: grid; place-items: center; }
@@ -333,8 +412,22 @@ export default function MusicPlayer() {
         .player__error { font-size: 0.72rem; color: var(--danger); }
         .player__volume { display: flex; align-items: center; gap: 8px; color: var(--ash); justify-self: end; }
         .player__volume input { accent-color: var(--amber); width: 90px; }
+        .player__options { display: flex; align-items: center; justify-self: end; gap: 10px; }
+        .player__option { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 30px; height: 34px; color: var(--ash); border-radius: var(--radius-s); }
+        .player__option:hover, .player__option[aria-pressed='true'] { color: var(--amber); }
+        .player__repeat-one { position: absolute; font-size: 0.58rem; font-weight: 700; right: 1px; bottom: 2px; }
+        .player__queue-button span { font-size: 0.75rem; }
+        @media (max-width: 1180px) {
+          .player { grid-template-columns: 190px minmax(250px, 1fr) auto; gap: 12px; padding: 0 16px; }
+          .player__volume { display: none; }
+          .player__options { gap: 6px; }
+        }
         @media (max-width: 900px) {
-          .player { left: 0; grid-template-columns: 1fr; grid-auto-rows: auto; height: auto; padding: 12px 16px; gap: 10px; }
+          .player { left: 0; grid-template-columns: 1fr auto; grid-template-areas: 'track options' 'center center'; grid-auto-rows: auto; height: auto; min-height: var(--player-h); padding: 10px 16px; gap: 8px 12px; }
+          .player__track { grid-area: track; }
+          .player__center { grid-area: center; }
+          .player__options { grid-area: options; }
+          .player__queue-button span { display: none; }
           /* iOS Safari ignores JS volume changes on <audio> entirely (a
              platform policy, not a bug here) — a slider that visibly does
              nothing is worse than no slider, and dropping this row also

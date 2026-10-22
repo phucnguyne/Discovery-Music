@@ -160,7 +160,7 @@ p {
        reads this same variable, so without this override the taller
        mobile player would sit on top of a page's last bit of content
        instead of leaving room for it. */
-    --player-h: 176px;
+    --player-h: 196px;
   }
   .app-shell {
     grid-template-columns: 1fr;

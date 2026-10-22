@@ -9,6 +9,8 @@
 
 export const PLAY_TRACK_EVENT = 'musicdisco:play-track';
 export const PLAY_STATE_EVENT = 'musicdisco:play-state';
+export const TOGGLE_PLAY_EVENT = 'musicdisco:toggle-play';
+export const OPEN_QUEUE_EVENT = 'musicdisco:open-queue';
 
 export interface PlayTrackDetail {
   id: string;

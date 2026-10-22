@@ -54,7 +54,7 @@ const canonicalUrl = siteUrl ? new URL(Astro.url.pathname, siteUrl).toString() :
           <slot />
         </main>
       </div>
-      <NowPlayingPanel client:idle transition:persist />
+      <NowPlayingPanel client:load transition:persist />
     </div>
     <MusicPlayer client:load transition:persist />
     <AddToPlaylistMenu client:idle transition:persist />

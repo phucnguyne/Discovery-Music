@@ -3,7 +3,7 @@
 // [data-vinyl][data-track-id] element (VinylArt, TrackRow) gets its
 // .is-playing class toggled here, driven purely by the PLAY_TRACK_EVENT
 // broadcast — no framework, no props drilling.
-import { PLAY_TRACK_EVENT, type PlayTrackDetail, dispatchPlayTrack } from './events';
+import { PLAY_TRACK_EVENT, PLAY_STATE_EVENT, TOGGLE_PLAY_EVENT, type PlayTrackDetail, dispatchPlayTrack } from './events';
 
 let currentPlayingId: string | null = null;
 let currentIsPlaying = false;
@@ -15,11 +15,26 @@ function syncVinyls() {
   });
 }
 
+function syncPlayButtons() {
+  document.querySelectorAll<HTMLButtonElement>('[data-play-button]').forEach((button) => {
+    const isCurrentTrack = button.dataset.trackId === currentPlayingId;
+    const isActive = isCurrentTrack && currentIsPlaying;
+    const title = button.dataset.title ?? 'track';
+    const artist = button.dataset.artist;
+    const description = artist ? `${title} by ${artist}` : title;
+    button.setAttribute('aria-label', `${isActive ? 'Pause' : 'Play'} ${description}`);
+    button.dataset.isPlaying = String(isActive);
+    const path = button.querySelector('svg path');
+    if (path) path.setAttribute('d', isActive ? 'M6 5h4v14H6zM14 5h4v14h-4z' : 'M8 5.5v13l11-6.5-11-6.5z');
+  });
+}
+
 // Fired when the React player changes track or toggles play/pause.
-window.addEventListener('musicdisco:play-state', ((e: CustomEvent<{ id: string; isPlaying: boolean }>) => {
+window.addEventListener(PLAY_STATE_EVENT, ((e: CustomEvent<{ id: string; isPlaying: boolean }>) => {
   currentPlayingId = e.detail.id;
   currentIsPlaying = e.detail.isPlaying;
   syncVinyls();
+  syncPlayButtons();
 }) as EventListener);
 
 // Also sync immediately when Play is clicked (for responsiveness before React loads)
@@ -27,13 +42,18 @@ window.addEventListener(PLAY_TRACK_EVENT, ((e: CustomEvent<PlayTrackDetail>) => 
   currentPlayingId = String(e.detail.id);
   currentIsPlaying = true;
   syncVinyls();
+  syncPlayButtons();
 }) as EventListener);
 
 // When Astro swaps the DOM during a client-side navigation, new [data-vinyl]
 // elements won't have the .is-playing class. Sync them immediately.
 document.addEventListener('astro:page-load', () => {
   syncVinyls();
+  syncPlayButtons();
 });
+
+const playButtonObserver = new MutationObserver(() => syncPlayButtons());
+playButtonObserver.observe(document.body, { childList: true, subtree: true });
 
 // Any plain HTML [data-play-button] anywhere on the page (AlbumCard, Hero,
 // TrackRow…) dispatches a play event through this single delegated listener
@@ -41,6 +61,11 @@ document.addEventListener('astro:page-load', () => {
 document.addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement)?.closest<HTMLButtonElement>('[data-play-button]');
   if (!btn) return;
+  if (btn.dataset.trackId === currentPlayingId) {
+    e.preventDefault();
+    window.dispatchEvent(new CustomEvent(TOGGLE_PLAY_EVENT));
+    return;
+  }
 
   // Build a queue from sibling play buttons within the same track-list so
   // the player's next/prev buttons are enabled (they require queue.length ≥ 2).

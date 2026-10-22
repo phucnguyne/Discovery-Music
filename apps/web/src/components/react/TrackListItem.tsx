@@ -4,6 +4,7 @@ import { MusicApiError } from '@music/api-client';
 import { dispatchAddToPlaylistRequest } from '../../lib/events';
 import { formatDuration, thumbSrc } from '../../lib/format';
 import type { Track } from '@music/types';
+import ArtistNames from './ArtistNames';
 
 interface Props {
   track: Track;
@@ -65,7 +66,7 @@ export default function TrackListItem({
       <img className="tli__art" src={thumbSrc(track.coverUrl)} alt="" width={44} height={44} loading="lazy" />
       <div className="tli__meta">
         <p className="tli__title">{track.title}</p>
-        <p className="tli__artist">{track.artistName}</p>
+        <ArtistNames className="tli__artist" name={track.artistName} artistId={track.artistId} />
       </div>
       <span className="tli__duration">{metaOverride ?? formatDuration(track.durationMs)}</span>
 
@@ -144,7 +145,8 @@ export default function TrackListItem({
         .tli__art { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; }
         .tli__meta { min-width: 0; }
         .tli__title { font-size: 0.92rem; font-weight: 600; color: var(--paper); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .tli__artist { margin-top: 2px; font-size: 0.8rem; color: var(--ash); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tli__artist { display: block; width: fit-content; max-width: 100%; margin-top: 2px; font-size: 0.8rem; color: var(--ash); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tli__artist a:hover { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }
         .tli__duration { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ash-dim); white-space: nowrap; }
         .tli__icon {
           width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center;
