@@ -5,7 +5,7 @@ import FavoritesList from '../components/react/FavoritesList';
 ---
 
 <Layout title="Favorite songs" description="Your saved favorite songs." noindex>
-  <TopBar eyebrow="My music" title="Favorite songs" />
+  <TopBar eyebrow="My music" title="Favorite songs" backHref="/profile" backLabel="profile" divider />
   <section class="section">
     <FavoritesList client:load />
   </section>

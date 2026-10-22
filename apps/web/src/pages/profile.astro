@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TopBar from '../components/TopBar.astro';
+import ProfileOverview from '../components/react/ProfileOverview';
+---
+
+<Layout title="Profile" description="Your Discovery Music profile." noindex>
+  <TopBar eyebrow="Account" title="Profile" divider />
+  <section class="section">
+    <ProfileOverview client:load />
+  </section>
+</Layout>

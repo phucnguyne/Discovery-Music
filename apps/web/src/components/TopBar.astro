@@ -7,11 +7,12 @@ interface Props {
   title?: string;
   backHref?: string;
   backLabel?: string;
+  divider?: boolean;
 }
-const { eyebrow, title, backHref, backLabel } = Astro.props;
+const { eyebrow, title, backHref, backLabel, divider = false } = Astro.props;
 ---
 
-<header class="topbar">
+<header class:list={['topbar', { 'topbar--divided': divider }]}>
   <div class="topbar__heading">
     {
       (eyebrow || backHref) && (
@@ -32,7 +33,9 @@ const { eyebrow, title, backHref, backLabel } = Astro.props;
   <div class="topbar__search">
     <SearchBar client:load transition:persist />
   </div>
-  <AccountMenu client:idle />
+  <div class="topbar__account">
+    <AccountMenu client:idle />
+  </div>
 </header>
 
 <style>
@@ -43,6 +46,11 @@ const { eyebrow, title, backHref, backLabel } = Astro.props;
     gap: 24px;
     flex-wrap: wrap;
     margin-bottom: 32px;
+  }
+
+  .topbar--divided {
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line);
   }
 
   .topbar__eyebrow-row {
@@ -89,10 +97,49 @@ const { eyebrow, title, backHref, backLabel } = Astro.props;
     justify-content: flex-end;
   }
 
-  @media (max-width: 640px) {
+  .topbar__account {
+    grid-area: account;
+    justify-self: end;
+  }
+
+  @media (max-width: 900px) {
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        'heading account'
+        'search search';
+      align-items: center;
+      gap: 16px 12px;
+      margin-bottom: 26px;
+    }
+
+    .topbar__heading {
+      grid-area: heading;
+      min-width: 0;
+    }
+
     .topbar__search {
-      justify-content: stretch;
+      grid-area: search;
+      width: 100%;
+      min-width: 0;
       max-width: none;
+      justify-content: stretch;
+    }
+
+    .topbar__search :global(.searchbar) {
+      max-width: none;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .topbar {
+      gap: 12px 8px;
+      margin-bottom: 20px;
+    }
+
+    .topbar__title {
+      font-size: clamp(1.45rem, 7vw, 1.8rem);
     }
   }
 </style>

@@ -5,7 +5,7 @@ import RecentlyPlayedList from '../components/react/RecentlyPlayedList';
 ---
 
 <Layout title="Recently played" description="Listen again to your recently played music." noindex>
-  <TopBar eyebrow="My music" title="Recently played" />
+  <TopBar eyebrow="My music" title="Recently played" backHref="/profile" backLabel="profile" />
   <section class="section">
     <RecentlyPlayedList client:load />
   </section>

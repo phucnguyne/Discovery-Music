@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import TopBar from '../components/TopBar.astro';
 import AccountForm from '../components/react/AccountForm';
 
 // No SSR auth gate here — see AccountForm.tsx's comment: apps/api and
@@ -9,50 +10,15 @@ import AccountForm from '../components/react/AccountForm';
 ---
 
 <Layout title="My account" description="Manage your Discovery Music account." noindex>
-  <div class="auth-page">
-    <div class="auth-card">
-      <span class="auth-card__eyebrow">DISCOVERY MUSIC</span>
-      <h1 class="auth-card__title">My account</h1>
-      <AccountForm client:load />
-    </div>
-  </div>
+  <TopBar eyebrow="Account" title="Account settings" backHref="/profile" backLabel="profile" divider />
+  <section class="account-page" aria-label="Account settings">
+    <AccountForm client:load />
+  </section>
 </Layout>
 
 <style>
-  .auth-page {
-    display: flex;
-    justify-content: center;
-    padding-top: 64px;
-  }
-
-  .auth-card {
-    width: 100%;
-    max-width: 420px;
-    background: var(--ink-soft);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-l);
-    padding: 32px;
-    box-shadow: var(--shadow-card);
-  }
-
-  .auth-card__eyebrow {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--amber);
-    margin-bottom: 12px;
-  }
-
-  .auth-card__title {
-    font-size: 1.6rem;
-    margin-bottom: 6px;
-  }
-
-  .auth-card__subtitle {
-    font-size: 0.88rem;
-    color: var(--ash);
-    margin-bottom: 24px;
+  .account-page {
+    width: min(100%, 900px);
+    margin: 0 auto;
   }
 </style>
