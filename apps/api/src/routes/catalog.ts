@@ -7,6 +7,7 @@ import {
   artistTracksQuerySchema,
   genreSlugSchema,
   artistIdSchema,
+  artistNameSchema,
   albumIdSchema,
 } from '@music/validation';
 import { CACHE_TTL_MS } from '@music/config';
@@ -130,6 +131,25 @@ catalog.get('/genres/:slug', async (c) => {
 
   setCacheHeader(c, CACHE_TTL_MS.charts);
   return c.json(ok(result));
+});
+
+// GET /catalog/artists/resolve?name=...
+catalog.get('/artists/resolve', async (c) => {
+  const parsed = artistNameSchema.safeParse({ name: c.req.query('name') });
+  if (!parsed.success) {
+    return c.json(fail(parsed.error.issues[0]?.message ?? 'invalid artist name'), 400);
+  }
+
+  const { name } = parsed.data;
+  const artist = await cached(`artist-name:${name.toLocaleLowerCase()}`, CACHE_TTL_MS.artist, async () => {
+    const candidates = await itunes.searchArtists(name, 20);
+    const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase();
+    return candidates.find((candidate) => normalize(candidate.name) === normalize(name)) ?? null;
+  });
+
+  if (!artist) return c.json(fail('artist not found'), 404);
+  setCacheHeader(c, CACHE_TTL_MS.artist);
+  return c.json(ok(artist));
 });
 
 // GET /catalog/artists/:id

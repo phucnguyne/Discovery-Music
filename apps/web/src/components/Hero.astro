@@ -1,5 +1,6 @@
 ---
 import VinylArt from './VinylArt.astro';
+import { getDisplayArtists } from '../lib/artist-display';
 import { formatDuration } from '../lib/format';
 import type { Track } from '@music/types';
 
@@ -8,6 +9,7 @@ interface Props {
 }
 const { track } = Astro.props;
 const artwork = track?.coverUrl ?? '';
+const artists = track ? getDisplayArtists(track.artistName, track.artistId) : [];
 ---
 
 {
@@ -16,7 +18,15 @@ const artwork = track?.coverUrl ?? '';
       <div class="hero__copy">
         <span class="hero__eyebrow">No. 1 on today's chart</span>
         <h2 class="hero__title">{track.title}</h2>
-        <p class="hero__artist">{track.artistName}{track.albumTitle ? ` — ${track.albumTitle}` : ''}</p>
+        <p class="hero__artist">
+          {artists.map((artist, index) => (
+            <>
+              {index > 0 && ', '}
+              <a href={artist.href}>{artist.name}</a>
+            </>
+          ))}
+          {track.albumTitle ? ` — ${track.albumTitle}` : ''}
+        </p>
         <div class="hero__row">
           {track.previewUrl && (
             <button
@@ -91,6 +101,12 @@ const artwork = track?.coverUrl ?? '';
     margin-top: 12px;
     color: var(--ash);
     font-size: 1.02rem;
+  }
+
+  .hero__artist a:hover {
+    color: var(--amber);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .hero__row {

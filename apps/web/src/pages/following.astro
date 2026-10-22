@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TopBar from '../components/TopBar.astro';
+import FollowedArtistsList from '../components/react/FollowedArtistsList';
+---
+
+<Layout title="Following" description="Artists you follow on Discovery Music." noindex>
+  <TopBar eyebrow="My music" title="Following" backHref="/profile" backLabel="profile" divider />
+  <section class="section">
+    <FollowedArtistsList client:load />
+  </section>
+</Layout>

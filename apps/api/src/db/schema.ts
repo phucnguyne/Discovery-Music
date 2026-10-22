@@ -87,6 +87,25 @@ export const favorites = pgTable(
   ],
 );
 
+export const followedArtists = pgTable(
+  'followed_artists',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    artistId: text('artist_id').notNull(),
+    name: text('name').notNull(),
+    genre: text('genre'),
+    profileUrl: text('profile_url'),
+    followedAt: timestamp('followed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('followed_artists_user_id_idx').on(table.userId),
+    unique('followed_artists_user_artist_unique').on(table.userId, table.artistId),
+  ],
+);
+
 export const playlists = pgTable(
   'playlists',
   {

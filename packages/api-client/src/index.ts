@@ -11,6 +11,7 @@ import type {
   ListeningEvent,
   RecentlyPlayedTrack,
   FavoriteTrack,
+  FollowedArtist,
   PlaylistSummary,
   PlaylistDetail,
   SearchResults,
@@ -76,6 +77,8 @@ export function createMusicApiClient(options: MusicApiClientOptions = {}) {
       `/catalog/genres/${encodeURIComponent(slug)}`,
     ),
     artist: (id: string) => request<ArtistProfile>(`/catalog/artists/${encodeURIComponent(id)}`),
+    resolveArtist: (name: string) =>
+      request<Artist>(`/catalog/artists/resolve?name=${encodeURIComponent(name)}`),
     artistTracks: (id: string, offset: number) =>
       request<{ tracks: Track[]; hasMore: boolean }>(
         `/catalog/artists/${encodeURIComponent(id)}/tracks?offset=${offset}`,
@@ -194,6 +197,28 @@ export function createMusicApiClient(options: MusicApiClientOptions = {}) {
       }),
     removeFavorite: (trackId: string) => request<null>(`/me/favorites/${encodeURIComponent(trackId)}`, { method: 'DELETE' }),
 
+    followedArtists: (cookieHeader?: string | null) =>
+      request<FollowedArtist[]>('/me/following', cookieHeader ? { headers: { Cookie: cookieHeader } } : undefined),
+    checkFollowing: async (artistIds: string[]): Promise<string[]> => {
+      if (artistIds.length === 0) return [];
+      return request<string[]>('/me/following/check', {
+        method: 'POST',
+        body: JSON.stringify({ artistIds }),
+      });
+    },
+    followArtist: (artist: { id: string; name: string; genre?: string; profileUrl?: string }) =>
+      request<null>('/me/following', {
+        method: 'POST',
+        body: JSON.stringify({
+          artistId: artist.id,
+          name: artist.name,
+          genre: artist.genre,
+          profileUrl: artist.profileUrl,
+        }),
+      }),
+    unfollowArtist: (artistId: string) =>
+      request<null>(`/me/following/${encodeURIComponent(artistId)}`, { method: 'DELETE' }),
+
     playlists: (cookieHeader?: string | null) =>
       request<PlaylistSummary[]>('/me/playlists', cookieHeader ? { headers: { Cookie: cookieHeader } } : undefined),
     createPlaylist: (name: string) =>
@@ -237,6 +262,7 @@ export type {
   ListeningEvent,
   RecentlyPlayedTrack,
   FavoriteTrack,
+  FollowedArtist,
   PlaylistSummary,
   PlaylistDetail,
 };

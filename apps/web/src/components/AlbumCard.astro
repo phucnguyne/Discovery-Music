@@ -1,12 +1,14 @@
 ---
 import VinylArt from './VinylArt.astro';
+import ArtistCredits from './ArtistCredits.astro';
 
 interface Props {
   title: string;
   subtitle: string;
   artwork: string;
+  artistId?: string;
   href?: string;
-  /** Present only for playable tracks; albums link out instead of playing. */
+  /** Present only for playable tracks; their title and play button start playback. */
   playable?: {
     id: string;
     artist: string;
@@ -18,10 +20,9 @@ interface Props {
   };
 }
 
-const { title, subtitle, artwork, href, playable } = Astro.props;
+const { title, subtitle, artwork, artistId, href, playable } = Astro.props;
 const cardId = `card-${Math.random().toString(36).slice(2, 9)}`;
 const isExternal = href?.startsWith('http');
-const Tag = href ? 'a' : 'div';
 ---
 
 <article class="album-card">
@@ -52,15 +53,43 @@ const Tag = href ? 'a' : 'div';
       )
     }
   </div>
-  <Tag
-    class:list={['album-card__meta', { 'album-card__meta--static': !href }]}
-    href={href}
-    target={isExternal ? '_blank' : undefined}
-    rel={isExternal ? 'noopener noreferrer' : undefined}
-  >
-    <p class="album-card__title">{title}</p>
-    <p class="album-card__subtitle">{subtitle}</p>
-  </Tag>
+  <div class="album-card__meta">
+    {
+      playable ? (
+        <button
+          class="album-card__title album-card__title--play"
+          type="button"
+          aria-label={`Play ${title} by ${playable.artist}`}
+          data-play-button
+          data-track-id={playable.id}
+          data-title={title}
+          data-artist={playable.artist}
+          data-album={playable.album ?? ''}
+          data-artwork={artwork}
+          data-preview={playable.previewUrl}
+          data-duration={playable.durationMs ?? ''}
+          data-artist-id={playable.artistId ?? ''}
+          data-genre={playable.genre ?? ''}
+        >
+          {title}
+        </button>
+      ) : href ? (
+        <a
+          class="album-card__title"
+          href={href}
+          target={isExternal ? '_blank' : undefined}
+          rel={isExternal ? 'noopener noreferrer' : undefined}
+        >
+          {title}
+        </a>
+      ) : (
+        <p class="album-card__title">{title}</p>
+      )
+    }
+    <div class="album-card__subtitle">
+      <ArtistCredits name={subtitle} artistId={playable?.artistId ?? artistId} />
+    </div>
+  </div>
 </article>
 
 <style>
@@ -126,6 +155,9 @@ const Tag = href ? 'a' : 'div';
   }
 
   .album-card__title {
+    display: block;
+    width: 100%;
+    padding: 0;
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--paper);
@@ -135,23 +167,33 @@ const Tag = href ? 'a' : 'div';
   }
 
   .album-card__subtitle {
+    display: block;
     margin-top: 3px;
     font-size: 0.82rem;
     color: var(--ash);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
-  .album-card__meta:hover .album-card__title {
+  .album-card__subtitle :global(a:hover) {
+    color: var(--amber);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  a.album-card__title:hover,
+  button.album-card__title:hover {
     color: var(--amber);
   }
 
-  .album-card__meta--static {
-    cursor: default;
+  button.album-card__title {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
   }
 
-  .album-card__meta--static:hover .album-card__title {
-    color: var(--paper);
+  .album-card__title--play:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 </style>

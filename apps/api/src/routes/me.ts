@@ -5,6 +5,7 @@ import {
   recordListenSchema,
   updateAccountSchema,
   trackSnapshotSchema,
+  artistSnapshotSchema,
   createPlaylistSchema,
 } from '@music/validation';
 import type {
@@ -12,11 +13,12 @@ import type {
   ListeningEvent,
   RecentlyPlayedTrack,
   FavoriteTrack,
+  FollowedArtist,
   PlaylistSummary,
   PlaylistDetail,
 } from '@music/types';
 import { db } from '../db/client.js';
-import { listeningEvents, favorites, playlists, playlistTracks, users } from '../db/schema.js';
+import { listeningEvents, favorites, followedArtists, playlists, playlistTracks, users } from '../db/schema.js';
 import { getSessionUserId } from '../lib/session.js';
 import { hashPassword, verifyPassword, toPublicUser } from '../lib/auth.js';
 
@@ -227,6 +229,73 @@ me.get('/favorites', async (c) => {
     favoritedAt: row.createdAt.toISOString(),
   }));
   return c.json(ok(tracks));
+});
+
+// POST /me/following — idempotently save an artist snapshot for this user.
+me.post('/following', async (c) => {
+  const userId = await getSessionUserId(c);
+  if (!userId) return c.json(err('not signed in'), 401);
+
+  const body = await c.req.json().catch(() => null);
+  const parsed = artistSnapshotSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(err(parsed.error.issues[0]?.message ?? 'invalid input'), 400);
+  }
+
+  await db
+    .insert(followedArtists)
+    .values({ userId, ...parsed.data })
+    .onConflictDoNothing({ target: [followedArtists.userId, followedArtists.artistId] });
+  return c.json(ok(null), 201);
+});
+
+// DELETE /me/following/:artistId
+me.delete('/following/:artistId', async (c) => {
+  const userId = await getSessionUserId(c);
+  if (!userId) return c.json(err('not signed in'), 401);
+
+  const artistId = c.req.param('artistId');
+  await db
+    .delete(followedArtists)
+    .where(and(eq(followedArtists.userId, userId), eq(followedArtists.artistId, artistId)));
+  return c.json(ok(null));
+});
+
+// POST /me/following/check — return followed artist ids for a batch.
+me.post('/following/check', async (c) => {
+  const userId = await getSessionUserId(c);
+  if (!userId) return c.json(ok<string[]>([]));
+
+  const body = await c.req.json().catch(() => null);
+  const artistIds = Array.isArray(body?.artistIds)
+    ? body.artistIds.filter((id: unknown): id is string => typeof id === 'string').slice(0, 100)
+    : [];
+  if (artistIds.length === 0) return c.json(ok<string[]>([]));
+
+  const rows = await db
+    .select({ artistId: followedArtists.artistId })
+    .from(followedArtists)
+    .where(and(eq(followedArtists.userId, userId), inArray(followedArtists.artistId, artistIds)));
+  return c.json(ok(rows.map((row) => row.artistId)));
+});
+
+// GET /me/following — most recently followed first.
+me.get('/following', async (c) => {
+  const userId = await getSessionUserId(c);
+  if (!userId) return c.json(err('not signed in'), 401);
+
+  const rows = await db.query.followedArtists.findMany({
+    where: eq(followedArtists.userId, userId),
+    orderBy: [desc(followedArtists.followedAt)],
+  });
+  const artists: FollowedArtist[] = rows.map((row) => ({
+    id: row.artistId,
+    name: row.name,
+    genre: row.genre ?? undefined,
+    profileUrl: row.profileUrl ?? undefined,
+    followedAt: row.followedAt.toISOString(),
+  }));
+  return c.json(ok(artists));
 });
 
 // POST /me/playlists — create a new (empty) playlist.

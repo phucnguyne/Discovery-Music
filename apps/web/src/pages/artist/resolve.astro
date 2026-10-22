@@ -1,0 +1,21 @@
+---
+import { api } from '../../lib/api';
+import { MusicApiError } from '@music/api-client';
+
+const name = Astro.url.searchParams.get('name')?.trim() ?? '';
+if (!name) return Astro.redirect('/404');
+
+async function getArtistDestination(artistName: string): Promise<string> {
+  try {
+    const artist = await api.resolveArtist(artistName);
+    return `/artist/${encodeURIComponent(artist.id)}`;
+  } catch (error) {
+    if (error instanceof MusicApiError && error.status === 404) {
+      return `/search?q=${encodeURIComponent(artistName)}`;
+    }
+    throw error;
+  }
+}
+
+return Astro.redirect(await getArtistDestination(name));
+---

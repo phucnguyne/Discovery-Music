@@ -4,6 +4,7 @@ import TopBar from '../../components/TopBar.astro';
 import SectionHeader from '../../components/SectionHeader.astro';
 import AlbumCard from '../../components/AlbumCard.astro';
 import SearchTracks from '../../components/react/SearchTracks';
+import ArtistFollowButton from '../../components/react/ArtistFollowButton';
 import VinylArt from '../../components/VinylArt.astro';
 import { api } from '../../lib/api';
 import { MusicApiError } from '@music/api-client';
@@ -46,6 +47,9 @@ const albumHref = (albumId: string) =>
       <p class="artist-hero__count">
         {albums.length} album{albums.length === 1 ? '' : 's'} · {topTracks.length} track{topTracks.length === 1 ? '' : 's'} shown
       </p>
+      <div class="artist-hero__follow">
+        <ArtistFollowButton client:load artist={artist} />
+      </div>
     </div>
   </section>
 
@@ -102,5 +106,9 @@ const albumHref = (albumId: string) =>
     margin-top: 8px;
     color: var(--ash);
     font-size: 0.92rem;
+  }
+
+  .artist-hero__follow {
+    margin-top: 16px;
   }
 </style>

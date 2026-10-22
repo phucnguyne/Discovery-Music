@@ -73,6 +73,11 @@ export interface FavoriteTrack extends Track {
   favoritedAt: string; // ISO date
 }
 
+/** An artist saved to a user's following list. */
+export interface FollowedArtist extends Artist {
+  followedAt: string; // ISO date
+}
+
 /** A playlist's own metadata — not its tracks, see PlaylistDetail for those. */
 export interface PlaylistSummary {
   id: string;

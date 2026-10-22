@@ -25,6 +25,10 @@ export const artistIdSchema = z.object({
   id: z.string().trim().max(20).regex(/^\d+$/, 'artist id must be numeric'),
 });
 
+export const artistNameSchema = z.object({
+  name: z.string().trim().min(1, 'artist name is required').max(200),
+});
+
 export const albumIdSchema = z.object({
   id: z.string().trim().max(20).regex(/^\d+$/, 'album id must be numeric'),
 });
@@ -90,6 +94,15 @@ export const trackSnapshotSchema = z.object({
 });
 
 export type TrackSnapshotInput = z.infer<typeof trackSnapshotSchema>;
+
+export const artistSnapshotSchema = z.object({
+  artistId: z.string().trim().min(1, 'artistId is required').max(64),
+  name: z.string().trim().min(1, 'artist name is required').max(200),
+  genre: z.string().trim().max(60).optional(),
+  profileUrl: z.string().trim().max(2000).optional(),
+});
+
+export type ArtistSnapshotInput = z.infer<typeof artistSnapshotSchema>;
 
 export const createPlaylistSchema = z.object({
   name: z.string().trim().min(1, 'name is required').max(100),
