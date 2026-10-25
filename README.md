@@ -14,6 +14,12 @@ genres — with previews, favorites, playlists, and recommendations.**
 
 [Getting Started](#-getting-started) · [API Reference](#-api-reference) · [Deployment](#-deployment)
 
+### Demo
+
+- [Open the web app](https://music-web-vemj.onrender.com/)
+- [Open the API](https://music-api-64yc.onrender.com/)
+- [API health check](https://music-api-64yc.onrender.com/health)
+
 </div>
 
 ---
@@ -317,16 +323,20 @@ These routes require an authenticated session unless noted by the client:
 
 ## 🧪 Validation
 
-The repository currently provides workspace typechecking and production
-build commands:
+The repository provides workspace typechecking, production builds, and a small
+HTTP smoke test for the deployed demo:
 
 ```bash
 pnpm typecheck
 pnpm build
+pnpm test
 ```
 
 `pnpm typecheck` runs TypeScript checks for the API and Astro diagnostics for
 the web app. `pnpm build` builds the API and web app through Turborepo.
+`pnpm test` checks that the web demo responds successfully and that the API
+health endpoint returns the expected service payload. Override the defaults
+with `WEB_URL` and `API_URL` when testing another deployment.
 
 ---
 

@@ -4,10 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "turbo run dev",
-    "dev:web": "turbo run dev --filter=@music/web",
-    "dev:api": "turbo run dev --filter=@music/api",
+    "dev:web": "pnpm --filter @music/web dev",
+    "dev:api": "pnpm --filter @music/api dev",
     "build": "turbo run build",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "test": "node --test tests/smoke.test.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
